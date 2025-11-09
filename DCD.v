@@ -45,7 +45,7 @@ module DCD(
     output reg          RST
 );
 // Reg and Wire
-reg [13:0] Count_r; // Caculate how many bit we receive from UART
+reg [7:0] Count_r; // Caculate how many bit we receive from UART
 reg [2:0]  current_state_r, next_state_r;
 reg [15:0] A_size;
 // Local Parameter
