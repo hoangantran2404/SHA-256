@@ -1,15 +1,15 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
-// Engineer: 
-// 
+// Engineer: Ngo Tran Hoang An
+// 					 ngotranhoangan2007@gmail.com
 // Create Date: 11/08/2025 05:30:08 PM
-// Design Name: 
+// Design Name: Decocder
 // Module Name: DCD
-// Project Name: 
+// Project Name: SHA 256
 // Target Devices: 
 // Tool Versions: 
-// Description: 
+// Description: Decode collects inputs from UART receiver, then compile to make a message [31:0] W [63:0].
 // 
 // Dependencies: 
 // 
