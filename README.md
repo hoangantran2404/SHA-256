@@ -1,7 +1,7 @@
 # SHA-256
 
 1.Overview
-- This project implements the SHA-256 cryptographic hash algorithm entirely in Verilog HDL.
+- This project implements the SHA-256 cryptographic hash algorithm entirely in Verilog on Vivado.
 - It is designed for FPGA synthesis, demonstrating digital design skills in pipelining, FSM control, message scheduling, and data path design.
 
 2.Features
