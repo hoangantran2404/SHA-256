@@ -18,7 +18,7 @@
 📂 sha256_verilog
 src/
 - sha256_top.v            # Top-level module
-- receiver                # UART receiver for converting the string input to binary
+- receiver                # UART receiver for converting the string input to binary (designed by my teacher)
 - ME.v                    # Message Expansion generates W(16 to 63) based on W(0 to 15)
 - MC.v                    # Message Compression uses inital hash values and does 64 loops to generate the final hash values.
 - maj                     # Control Units instantiated in MC
