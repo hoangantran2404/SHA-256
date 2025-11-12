@@ -24,7 +24,7 @@ module SHA256_core#(
     parameter DATA_WIDTH =32
 )
 (   
-    input wire clk, rst_n, i_load,
+    input wire clk, rst_n, load_i,
     input wire [DATA_WIDTH-1:0] message0,
     input wire [DATA_WIDTH-1:0] message1,
     input wire [DATA_WIDTH-1:0] message2,
@@ -62,9 +62,9 @@ module SHA256_core#(
     output wire valid_out
 );
 // Internal signal
-reg [1:0] FSM_state_w;
-reg [6:0] round_w;
-reg [DATA_WIDTH-1:0] message_out;
+wire [1:0] FSM_state_w;
+wire [6:0] round_w;
+wire [DATA_WIDTH-1:0] message_out;
 
 ME # (
     .DATA_WIDTH(DATA_WIDTH)
