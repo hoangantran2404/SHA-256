@@ -1,8 +1,8 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
-// Engineer: 
-// 
+// Engineer: Ngo Tran Hoang An
+//           ngotranhoangan2007@gmail.com
 // Create Date: 11/11/2025 03:59:05 PM
 // Design Name: 
 // Module Name: maj
