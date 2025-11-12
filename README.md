@@ -13,24 +13,24 @@
 - Synthesizable and activable on ZCU102 (FPGA board)
   
 3.Structures
-📂 sha256_verilog
-├── src/
-│   ├── sha256_top.v            # Top-level module
-│   └── receiver                # UART receiver for converting the string input to binary
-│   ├── ME.v                    # Message Expansion generates W(16 to 63) based on W(0 to 15)
-│   ├── MC.v                    # Message Compression uses inital hash values and does 64 loops to generate the final hash values.
-│   └── maj                     # Control Units instantiated in MC
-│   └── CHS                     # Control Units instantiated in MC 
-│   └── EP0                     # Control Units instantiated in MC
-│   └── EP1                     # Control Units instantiated in MC
-│   └── SIG0                    # Control Units instantiated in ME
-│   └── SIG1                    # Control Units instantiated in ME
+<img width="1133" height="1041" alt="Screenshot from 2025-11-12 07-17-00" src="https://github.com/user-attachments/assets/ddd3c297-8db7-406d-80e2-dbfb6a9751fc" />
 
-├── sim/
-│   ├── sha256_tb.v            # Testbench
-├── docs/
-│   ├── architecture_diagram.png
-│   └── waveform_example.png
-│
-├── README.md
-└── LICENSE
+📂 sha256_verilog
+src/
+- sha256_top.v            # Top-level module
+- receiver                # UART receiver for converting the string input to binary
+- ME.v                    # Message Expansion generates W(16 to 63) based on W(0 to 15)
+- MC.v                    # Message Compression uses inital hash values and does 64 loops to generate the final hash values.
+- maj                     # Control Units instantiated in MC
+- CHS                     # Control Units instantiated in MC 
+- EP0                     # Control Units instantiated in MC
+- EP1                     # Control Units instantiated in MC
+- SIG0                    # Control Units instantiated in ME
+- SIG1                    # Control Units instantiated in ME
+sim/
+- sha256_tb.v            # Testbench
+docs/
+- architecture_diagram.png
+- waveform_example.png
+- README.md
+- LICENSE
