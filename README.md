@@ -20,6 +20,9 @@ src/
 - sha256_top.v            # Top-level module
 - receiver                # UART receiver for converting the string input to binary (designed by my teacher)
 - ME.v                    # Message Expansion generates W(16 to 63) based on W(0 to 15)
+<img width="690" height="1342" alt="Screenshot from 2025-11-15 14-39-38" src="https://github.com/user-attachments/assets/c7ebb689-eaf9-4559-ba8c-c0831a606ebb" />
+<img width="1493" height="685" alt="Screenshot from 2025-11-15 14-36-22" src="https://github.com/user-attachments/assets/ef7c4dc3-7b7f-4c98-a2e1-e52866baab57" />
+
 - MC.v                    # Message Compression uses inital hash values and does 64 loops to generate the final hash values.
 - maj                     # Control Units instantiated in MC
 - CHS                     # Control Units instantiated in MC 
