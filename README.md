@@ -14,12 +14,14 @@
   
 3.Structures
 <img width="1133" height="1041" alt="Screenshot from 2025-11-12 07-17-00" src="https://github.com/user-attachments/assets/ddd3c297-8db7-406d-80e2-dbfb6a9751fc" />
+<img width="1627" height="998" alt="Screenshot from 2025-11-16 15-59-31" src="https://github.com/user-attachments/assets/d9ee3c24-6144-495f-a605-f0ffc12f46b3" />
+
 
 📂 sha256_verilog
 src/
 - sha256_top.v            # Top-level module
 - receiver                # UART receiver for converting the string input to binary (designed by my teacher)
-- ME.v                    # Message Expansion generates W(16 to 63) based on W(0 to 15)
+- rME.v                   # Message Expansion generates W(16 to 63) based on W(0 to 15)
 <img width="690" height="1342" alt="Screenshot from 2025-11-15 14-39-38" src="https://github.com/user-attachments/assets/c7ebb689-eaf9-4559-ba8c-c0831a606ebb" />
 <img width="1493" height="685" alt="Screenshot from 2025-11-15 14-36-22" src="https://github.com/user-attachments/assets/ef7c4dc3-7b7f-4c98-a2e1-e52866baab57" />
 
