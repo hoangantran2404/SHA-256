@@ -1,12 +1,12 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
-// Engineer: 
-// 
+// Engineer: Ngo Tran Hoang An
+//           ngotranhoangan2007@gmail.com
 // Create Date: 11/17/2025 02:51:29 PM
 // Design Name: 
 // Module Name: Message_Packer
-// Project Name: 
+// Project Name: SHA 256 (hash algorithm)
 // Target Devices: 
 // Tool Versions: 
 // Description: 
@@ -19,150 +19,6 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-
-// module Message_Packer #(
-//     parameter DATA_WIDTH =512
-// )
-// (
-//     input wire          clk, rst_n,
-//     input wire          uart_dv,
-//     input wire [7:0]    uart_byte,
-
-//     output wire [DATA_WIDTH-1:0] data_out,
-//     output reg               data_valid     
-// );
-//     wire LOAD_flag_w, EXE_flag_w;
-//     wire SEND_flag_w, IDLE_flag_w;
-//     wire DONE_flag_w; // of EXEs
-//     reg  [DATA_WIDTH-1:0]dout_r;
-
-//     reg [1:0]  current_state_r, next_state_r;
-//     reg [5:0]  load_count_r;
-//     reg [5:0]  send_count_r;
-//     reg [7:0]  mem  [0:63];
-//     reg [63:0] total_bit_r;
-
-
-//     localparam IDLE    =2'b00;
-//     localparam LOAD    =2'b01;
-//     localparam EXE     =2'b10; // padding
-//     localparam SEND    =2'b11;
-
-//     assign LOAD_flag_w = uart_dv;
-//     assign EXE_flag_w  = (load_count_r == 5'd63)? 1'b1   : 1'b0;
-//     assign SEND_flag_w = (DONE_flag_w)          ? 1'b1   : 1'b0;
-//     assign data_out    = (current_state_r == SEND)? dout_r : 0; 
-
-
-// // Controller
-
-//     always @(LOAD_flag_w or EXE_flag_w or SEND_flag_w ) begin
-//         case(current_state_r) 
-//             IDLE: begin
-//                 if(LOAD_flag_w)
-//                     next_state_r = LOAD;
-//                 else 
-//                     next_state_r = IDLE;
-//             end
-//             LOAD: begin
-//                 if (EXE_flag_w) 
-//                     next_state_r = EXE;
-//                 else 
-//                     next_state_r = LOAD;
-//             end
-//             EXE: begin
-//                 if(SEND_flag_w) 
-//                     next_state_r = SEND;
-//                 else 
-//                     next_state_r = EXE;
-//             end
-//             SEND: begin
-//                     next_state_r = IDLE;
-//             end
-//             default: next_state_r = IDLE;
-//         endcase
-//     end
-
-//     always @(posedge clk or negedge rst_n) begin
-//         if(!rst_n) begin
-//             current_state_r <= IDLE;
-//         end else begin
-//             current_state_r <= next_state_r;
-//         end
-//     end
-// // Datapath
-
-// integer i;
-// integer pad_bytes;
-
-//     always @(posedge clk or negedge rst_n) begin
-//         if(!rst_n) begin
-//                 load_count_r <=0; 
-//                 total_bit_r    <=0;
-//         end else begin
-//             if(current_state_r == LOAD && uart_dv) begin
-//                 load_count_r <= load_count_r + 6'd1;
-//                 total_bit_r    <= total_bit_r    + 64'd8;
-//             end else begin
-//                 load_count_r <= load_count_r; 
-//                 total_bit_r    <= total_bit_r   ;
-//             end
-
-//         end
-//     end
-//     always @(posedge clk or negedge rst_n) begin
-//         if(!rst_n) begin
-//                 load_count_r <=0;
-//                 total_bit_r    <=0;
-//                 for(i=0; i<64 ; i = i+1) begin
-//                     mem[i] <= 8'd0;
-//                 end
-//         end else begin
-//             if (current_state_r == IDLE) begin
-//                 load_count_r <=0;
-//                 total_bit_r    <=0;
-//                 for(i=0; i<64 ; i = i+1) begin
-//                     mem[i] <= 8'd0;
-//                 end
-//             end else if (current_state_r == LOAD) begin
-//                     mem[load_count_r] <= uart_byte;
-            
-//             end else if(current_state_r == EXE) begin
-
-//                 for(i = 0; i < load_count_r; i=i+1) begin   
-//                     dout_r[(511 - i*8) -: 8] <= mem[i];
-//                 end
-
-//                     dout_r[(511 - load_count_r*8) -: 8] <= 8'h80;
-
-//                     pad_bytes = (448 - (total_bit_r + 8)) / 8;
-//                 for(i = 0; i < pad_bytes; i=i+1) begin
-//                     dout_r[(511 - (load_count_r+1+i)*8) -: 8] <= 8'h00;
-//                 end
-
-//                 for(i = 0; i < 8; i=i+1)begin
-//                     dout_r[(63 - i*8) -: 8] <= total_bit_r[(7-i)*8 +: 8];
-//                 end
-//             end else if(current_state_r == SEND) begin
-//                     //Paste dout_r to data_out
-//             end else begin
-//                 load_count_r <=0;
-//                 total_bit_r    <=0;
-//                 for(i=0; i<64 ; i = i+1) begin
-//                     mem[i] <= 8'd0;
-//                 end
-//             end
-//         end
-//     end
-// endmodule
-
-
-
-// =============================
-// Message_Packer.v
-// Collect bytes from UART, pad to 512-bit for SHA-256
-// Synthesis-friendly version
-// =============================
 module Message_Packer #(
     parameter DATA_WIDTH = 512
 )(
