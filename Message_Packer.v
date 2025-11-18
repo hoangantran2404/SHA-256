@@ -7,8 +7,8 @@
 // Design Name: 
 // Module Name: Message_Packer
 // Project Name: SHA 256 (hash algorithm)
-// Target Devices: 
-// Tool Versions: 
+// Target Devices: ZCU102 FPGA Board
+// Tool Versions: Vivado on Linux
 // Description: Message_Packer connects UART receiver and SHA 256's core
 // 
 // Dependencies: 
