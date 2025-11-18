@@ -9,7 +9,7 @@
 // Project Name: SHA 256 (hash algorithm)
 // Target Devices: 
 // Tool Versions: 
-// Description: 
+// Description: Message_Packer connects UART receiver and SHA 256's core
 // 
 // Dependencies: 
 // 
