@@ -3,7 +3,12 @@
 1.Overview
 - This project implements the SHA-256 cryptographic hash algorithm entirely in Verilog on Vivado.
 - It is designed for FPGA synthesis, demonstrating digital design skills in pipelining, FSM control, message scheduling, and data path design.
-
+    1.1 Dataflow:
+  UART RX (8-bit)
+  Message Packer (8-bit → 512-bit)
+  SHA-256 Core (32-bit internal)
+  Digest Splitter (32-bit → 8-bit)
+  UART TX (8-bit)
 2.Features
 - Fully compliant with SHA-256 specification
 - Modular structure (Message Expansion, Compression, and Control Units)
