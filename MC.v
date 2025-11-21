@@ -31,27 +31,25 @@ module MC#(
     input wire [1:0]            FSM_state_in,
     input wire [5:0]            round_in,    
 
-    output wire [DATA_WIDTH-1:0] out0,
-    output wire [DATA_WIDTH-1:0] out1,
-    output wire [DATA_WIDTH-1:0] out2,
-    output wire [DATA_WIDTH-1:0] out3,
-    output wire [DATA_WIDTH-1:0] out4,
-    output wire [DATA_WIDTH-1:0] out5,
-    output wire [DATA_WIDTH-1:0] out6,
-    output wire [DATA_WIDTH-1:0] out7,
+    output reg [DATA_WIDTH-1:0] data_out,
     output wire valid_out
     
 );
-// Internal signal 
-wire [DATA_WIDTH-1:0] out_choose_w;
-wire [DATA_WIDTH-1:0] out_ep1_w;
-wire [DATA_WIDTH-1:0] out_ep0_w;
-wire [DATA_WIDTH-1:0] out_major_w;
-wire [DATA_WIDTH-1:0] T1_w,T2_w;
+// Internal signal
+wire                  SEND_flag_w    ;
+wire [1:0]            FSM_state_w    ;   
+wire [5:0]            round_count_w  ;
+wire [DATA_WIDTH-1:0] out_choose_w   ;
+wire [DATA_WIDTH-1:0] out_ep1_w      ;
+wire [DATA_WIDTH-1:0] out_ep0_w      ;
+wire [DATA_WIDTH-1:0] out_major_w    ;
+wire [DATA_WIDTH-1:0] T1_w,T2_w      ;
+
 
 wire [DATA_WIDTH-1:0] a_w,  b_w,    c_w,    d_w,    e_w,    f_w,    g_w,    h_w;
 wire [DATA_WIDTH-1:0] fa_w, fb_w,   fc_w,   fd_w,   fe_w,   ff_w,   fg_w,   fh_w;
 
+reg  [3:0]            send_count_r   ;
 reg  [DATA_WIDTH-1:0] i_T1, i_T2;
 reg  [DATA_WIDTH-1:0] k_r;// Initial Hash value
 reg  [DATA_WIDTH-1:0] a_r   ,b_r    ,c_r    ,d_r,   e_r,   f_r,     g_r,    h_r;
@@ -68,7 +66,7 @@ localparam  [DATA_WIDTH-1:0] H7 = 32'h5be0cd19;
 
 // Initial hash value
 always @(*) begin
-case (round_in)
+case (round_count_w)
         6'h00:k_r= 32'h428a2f98;
         6'h01:k_r= 32'h71374491;
         6'h02:k_r= 32'hb5c0fbcf;
@@ -158,9 +156,15 @@ CHS CHS_inst(
     .in2(g_r),
     .data_out(out_choose_w)
 );
+//Signal and Flag
+assign FSM_state_w    = FSM_state_in;
+assign round_count_w  = round_in;
 
-assign T1_w =(FSM_state_in == 2'b01|| FSM_state_in == 2'b10) ? h_r + out_ep1_w + out_choose_w + k_r + data_in : 32'h0; 
-assign T2_w =(FSM_state_in == 2'b01|| FSM_state_in == 2'b10) ? out_ep0_w + out_major_w : 32'h0;
+assign valid_out      = (FSM_state_w == 2'b10 && round_count_w == 6'd63)? 1: 0;
+assign SEND_flag_w    = (round_count_w < 6'd64)? 1'b0 : 1'b1;
+
+assign T1_w =(FSM_state_w == 2'b01|| FSM_state_w == 2'b10) ? h_r + out_ep1_w + out_choose_w + k_r + data_in : 32'h0; 
+assign T2_w =(FSM_state_w == 2'b01|| FSM_state_w == 2'b10) ? out_ep0_w + out_major_w : 32'h0;
 
 // Paste output of round 0 to 63 to wire 
 assign a_w  = T1_w + T2_w;
@@ -172,83 +176,76 @@ assign f_w  = e_r;
 assign g_w  = f_r;
 assign h_w  = g_r;
 
-// 2' b10 && round_in=6'63
-assign fa_w= (FSM_state_in == 2'b10 && round_in == 6'd63)?  H0 + a_w : 32'h0;
-assign fb_w= (FSM_state_in == 2'b10 && round_in == 6'd63)?  H1 + b_w : 32'h0;
-assign fc_w= (FSM_state_in == 2'b10 && round_in == 6'd63)?  H2 + c_w : 32'h0;
-assign fd_w= (FSM_state_in == 2'b10 && round_in == 6'd63)?  H3 + d_w : 32'h0;
-assign fe_w= (FSM_state_in == 2'b10 && round_in == 6'd63)?  H4 + e_w : 32'h0;
-assign ff_w= (FSM_state_in == 2'b10 && round_in == 6'd63)?  H5 + f_w : 32'h0;
-assign fg_w= (FSM_state_in == 2'b10 && round_in == 6'd63)?  H6 + g_w : 32'h0;
-assign fh_w= (FSM_state_in == 2'b10 && round_in == 6'd63)?  H7 + h_w : 32'h0;
+// 2' b10 && round_count_w=6'63
+assign fa_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H0 + a_w : 32'h0;
+assign fb_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H1 + b_w : 32'h0;
+assign fc_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H2 + c_w : 32'h0;
+assign fd_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H3 + d_w : 32'h0;
+assign fe_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H4 + e_w : 32'h0;
+assign ff_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H5 + f_w : 32'h0;
+assign fg_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H6 + g_w : 32'h0;
+assign fh_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H7 + h_w : 32'h0;
 
-assign out0 =  fa_w;
-assign out1 =  fb_w;
-assign out2 =  fc_w;
-assign out3 =  fd_w;
-assign out4 =  fe_w;
-assign out5 =  ff_w;
-assign out6 =  fg_w;
-assign out7 =  fh_w;
-
-assign valid_out = (FSM_state_in == 2'b10 && round_in == 6'd63)? 1: 0;
 
 
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n) begin
-        a_r <= 32'h0;
-        b_r <= 32'h0;
-        c_r <= 32'h0;
-        d_r <= 32'h0;
-        e_r <= 32'h0;
-        f_r <= 32'h0;
-        g_r <= 32'h0;
-        h_r <= 32'h0;
+        send_count_r    <= 0;
+        a_r             <= 32'h0;
+        b_r             <= 32'h0;
+        c_r             <= 32'h0;
+        d_r             <= 32'h0;
+        e_r             <= 32'h0;
+        f_r             <= 32'h0;
+        g_r             <= 32'h0;
+        h_r             <= 32'h0;
     end
     else begin
-        if(FSM_state_in == 2'b00)begin        
-            if (start_in) begin
-                a_r     <= H0;
-                b_r     <= H1;
-                c_r     <= H2;
-                d_r     <= H3;
-                e_r     <= H4;
-                f_r     <= H5;
-                g_r     <= H6;
-                h_r     <= H7;
-            end
-            else begin 
-                a_r <= 32'h0;
-                b_r <= 32'h0;   
-                c_r <= 32'h0;
-                d_r <= 32'h0;
-                e_r <= 32'h0;
-                f_r <= 32'h0;
-                g_r <= 32'h0;
-                h_r <= 32'h0;
-            end
-        end else if ((FSM_state_in == 2'b01|| FSM_state_in == 2'b10)) begin
-            //update working register on each round
-                a_r <= a_w;
-                b_r <= b_w;
-                c_r <= c_w;
-                d_r <= d_w;
-                e_r <= e_w;
-                f_r <= f_w;
-                g_r <= g_w;
-                h_r <= h_w;
+            if ( FSM_state_w == 2'b00 )begin      
+                if (start_in) begin
+                    send_count_r    <= 0;
+                    a_r             <= H0;
+                    b_r             <= H1;
+                    c_r             <= H2;
+                    d_r             <= H3;
+                    e_r             <= H4;
+                    f_r             <= H5;
+                    g_r             <= H6;
+                    h_r             <= H7;
+                end
+                else begin 
+                    a_r             <= 32'h0;
+                    b_r             <= 32'h0;   
+                    c_r             <= 32'h0;
+                    d_r             <= 32'h0;
+                    e_r             <= 32'h0;
+                    f_r             <= 32'h0;
+                    g_r             <= 32'h0;
+                    h_r             <= 32'h0;
+                end
+            end else if ((FSM_state_w == 2'b01|| FSM_state_w == 2'b10)) begin
+                //update working register on each round
+                    a_r             <= a_w;
+                    b_r             <= b_w;
+                    c_r             <= c_w;
+                    d_r             <= d_w;
+                    e_r             <= e_w;
+                    f_r             <= f_w;
+                    g_r             <= g_w;
+                    h_r             <= h_w;
                 
-        end else begin // 2' b10 && round_in=6'63 
-            // Keep registers stable 
-                a_r <= a_r;
-                b_r <= b_r;
-                c_r <= c_r;
-                d_r <= d_r;
-                e_r <= e_r;
-                f_r <= f_r;
-                g_r <= g_r;
-                h_r <= h_r;
+            end else if (SEND_flag_w) begin 
+                if (send_count_r < 4'd16) begin
+                    data_out <= (send_count_r == 0)? fa_w:
+                                (send_count_r == 1)? fb_w:
+                                (send_count_r == 2)? fc_w:
+                                (send_count_r == 3)? fd_w:
+                                (send_count_r == 4)? fe_w:
+                                (send_count_r == 5)? ff_w:
+                                (send_count_r == 6)? fg_w:fh_w;
+                    send_count_r <= send_count_r + 1;
+                end
+            end
         end
-    end
 end
 endmodule
