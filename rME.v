@@ -6,10 +6,10 @@
 // Create Date: 11/10/2025 10:12:33 PM
 // Design Name: 
 // Module Name: ME
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
+// Project Name: SHA-256 
+// Target Devices: ZCU102 
+// Tool Versions: Vivado 2022 on Linux
+// Description: rME receives 1 Word (32 bit/ 1 clock cycle) from SHA-256 core and generate W[16:63] based on initial W[0:15]
 // 
 // Dependencies: 
 // 
@@ -108,12 +108,12 @@ always @(current_state_r or start_in or round_r) begin
             else
                 next_state_r = s_IDLE;
         s_ROUND0to15:  
-            if(round_r < 6'd16) 
+            if(round_r < 6'd15) 
                 next_state_r = s_ROUND0to15;
             else
                 next_state_r = s_ROUND16to63;
         s_ROUND16to63:
-            if(round_r < 6'd64)
+            if(round_r < 6'd63)
                 next_state_r = s_ROUND16to63;
             else 
                 next_state_r = s_CLEANUP;
@@ -176,4 +176,5 @@ always @(posedge clk or negedge rst_n) begin
     endcase
 end
 end
+endmodule
 endmodule
