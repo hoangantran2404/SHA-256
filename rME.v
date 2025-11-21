@@ -103,10 +103,10 @@ end
 always @(current_state_r or start_in or round_r) begin 
     case(current_state_r)                            
         s_IDLE:        
-            if(start_in)
-                next_state_r = s_ROUND0to15;
-            else
+            if(start_in && Rx_core_count < 5'd15)
                 next_state_r = s_IDLE;
+            else
+                next_state_r = s_ROUND0to15;
         s_ROUND0to15:  
             if(round_r < 6'd15) 
                 next_state_r = s_ROUND0to15;
@@ -142,12 +142,12 @@ end
 integer i;
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-        i_sig0_r <= 32'd0;
-        i_sig1_r <= 32'd0;
-        data_out_r <= 32'd0;
+        i_sig0_r        <= 32'd0;
+        i_sig1_r        <= 32'd0;
+        data_out_r      <= 32'd0;
 
         for (i=0; i < 64 ; i=i+1 ) begin
-            i_m_r[i] <= 32'd0;
+            i_m_r[i]    <= 32'd0;
         end
     end else begin
         case(current_state_r) 
@@ -167,7 +167,7 @@ always @(posedge clk or negedge rst_n) begin
             s_ROUND16to63: begin
                     i_sig0_r            <= i_sig0_w;
                     i_sig1_r            <= i_sig1_w;
-                    i_m_r[round_r] <= i_m_r[round_r - 6'd16 ] + o_sig0_w + i_m_r[round_r - 6'd7] + o_sig1_w;     
+                    i_m_r[round_r]      <= i_m_r[round_r - 6'd16 ] + o_sig0_w + i_m_r[round_r - 6'd7] + o_sig1_w;     
             end
         default: begin
             i_sig0_r <= 32'd0;
@@ -176,5 +176,4 @@ always @(posedge clk or negedge rst_n) begin
     endcase
 end
 end
-endmodule
 endmodule
