@@ -35,7 +35,9 @@ module MC#(
     output wire valid_out
     
 );
-// Internal signal
+//==================================================//
+//                   Registers                      //
+//==================================================//
 wire                  SEND_flag_w    ;
 wire [1:0]            FSM_state_w    ;   
 wire [5:0]            round_count_w  ;
@@ -49,11 +51,14 @@ wire [DATA_WIDTH-1:0] T1_w,T2_w      ;
 wire [DATA_WIDTH-1:0] a_w,  b_w,    c_w,    d_w,    e_w,    f_w,    g_w,    h_w;
 wire [DATA_WIDTH-1:0] fa_w, fb_w,   fc_w,   fd_w,   fe_w,   ff_w,   fg_w,   fh_w;
 
-reg  [3:0]            send_count_r   ;
+reg  [2:0]            send_count_r   ;
 reg  [DATA_WIDTH-1:0] i_T1, i_T2;
 reg  [DATA_WIDTH-1:0] k_r;// Initial Hash value
 reg  [DATA_WIDTH-1:0] a_r   ,b_r    ,c_r    ,d_r,   e_r,   f_r,     g_r,    h_r;
 
+//==================================================//
+//                 State Encoding                   //
+//==================================================//
 localparam  [DATA_WIDTH-1:0] H0 = 32'h6a09e667;
 localparam  [DATA_WIDTH-1:0] H1 = 32'hbb67ae85;
 localparam  [DATA_WIDTH-1:0] H2 = 32'h3c6ef372;
@@ -135,6 +140,9 @@ case (round_count_w)
 
 endcase
 end
+//==================================================//
+//             Instantiate module                   //
+//==================================================//
 
 EP0 EP0_inst(
     .data_in(a_r),
@@ -156,11 +164,14 @@ CHS CHS_inst(
     .in2(g_r),
     .data_out(out_choose_w)
 );
-//Signal and Flag
+//==================================================//
+//             Combinational Logic                  //
+//==================================================//
+
 assign FSM_state_w    = FSM_state_in;
 assign round_count_w  = round_in;
 
-assign valid_out      = (FSM_state_w == 2'b10 && round_count_w == 6'd63)? 1: 0;
+assign valid_out      = (send_count_r < 3'd8 && round_count_w == 6'd63)? 1: 0;
 assign SEND_flag_w    = (round_count_w < 6'd64)? 1'b0 : 1'b1;
 
 assign T1_w =(FSM_state_w == 2'b01|| FSM_state_w == 2'b10) ? h_r + out_ep1_w + out_choose_w + k_r + data_in : 32'h0; 
@@ -186,11 +197,14 @@ assign ff_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H5 + f_w : 32'h0
 assign fg_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H6 + g_w : 32'h0;
 assign fh_w= (FSM_state_w == 2'b10 && round_count_w == 6'd63)?  H7 + h_w : 32'h0;
 
-
+//==================================================//
+//                   Datapath                       //
+//==================================================//
 
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n) begin
         send_count_r    <= 0;
+        data_out        <= {DATA_WIDTH{1'b0}};
         a_r             <= 32'h0;
         b_r             <= 32'h0;
         c_r             <= 32'h0;
@@ -204,6 +218,7 @@ always @(posedge clk or negedge rst_n) begin
             if ( FSM_state_w == 2'b00 )begin      
                 if (start_in) begin
                     send_count_r    <= 0;
+                    data_out        <= {DATA_WIDTH{1'b0}};
                     a_r             <= H0;
                     b_r             <= H1;
                     c_r             <= H2;
@@ -235,7 +250,7 @@ always @(posedge clk or negedge rst_n) begin
                     h_r             <= h_w;
                 
             end else if (SEND_flag_w) begin 
-                if (send_count_r < 4'd16) begin
+                if (send_count_r < 3'd8) begin
                     data_out <= (send_count_r == 0)? fa_w:
                                 (send_count_r == 1)? fb_w:
                                 (send_count_r == 2)? fc_w:
@@ -244,6 +259,9 @@ always @(posedge clk or negedge rst_n) begin
                                 (send_count_r == 5)? ff_w:
                                 (send_count_r == 6)? fg_w:fh_w;
                     send_count_r <= send_count_r + 1;
+                end else begin
+                // finished sending words; keep data_out stable or clear if desired
+                data_out <= data_out;
                 end
             end
         end
