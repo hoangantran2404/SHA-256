@@ -9,8 +9,8 @@
 // Project Name: SHA 256 (hash algorithm)
 // Target Devices: ZCU102 FPGA Board
 // Tool Versions: Vivado on Linux
-// Description: Message_Packer connects UART receiver and SHA 256's core
-// 
+// Description: Message_Packer's functionality is combined all data receiving from UART receiver (8 bits/clock) to 16 words (32 bits/1 word) 
+// and passes it to SHA-256 core.
 // Dependencies: 
 // 
 // Revision:
@@ -20,17 +20,18 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 module Message_Packer #(
-    parameter DATA_WIDTH = 512
+    parameter DATA_WIDTH = 32
 )(
-    input  wire                 clk,      
-    input  wire [7:0]           uart_byte_in,     
-    input  wire                 Rx_DV,     //=1 means load input 
+    input  wire                             clk,    
+    input  wire                             rst_n,  
+    input  wire [7:0]                       uart_byte_in,     
+    input  wire                             Rx_DV,                      //=1 means load input 
 
-    output reg [7:0]           data_out,
-    output wire                data_valid     
+    output reg [DATA_WIDTH-1 :0]            data_out,
+    output wire                             data_valid     
 );
 
-     //==================================================//
+    //==================================================//
     //                 State Encoding                   //
     //==================================================//
     reg  [2:0] current_state_r = s_IDLE;
@@ -47,22 +48,27 @@ module Message_Packer #(
     //                   Registers                      //
     //==================================================//
     reg [63:0]                    msg_len_bit            ;
-    reg [7:0]                     uart_byte_r            ; // Store the input 
+    reg [7:0]                     uart_byte_r            ;    // Store the input 
     reg [7:0]                     mem [0:63]             ;  
     reg                           Rx_Data_r              ; 
     reg                           Rx_Data_R_r            ;   
-    reg [5:0]                     din_count_r            ;   // counter BYTE from UART Receiver
-    reg [5:0]                     dout_count_r           ;
-    reg                           dv_flag_r   =   1'b0   ;// output flag done when 1 byte has converted
-    reg [DATA_WIDTH-1:0]          MP_out_r               ; 
+    reg [5:0]                     din_count_r            ;    // counter BYTE from UART Receiver
+    reg [4:0]                     dout_count_r           ;   
+    reg                           dv_flag_r   =   1'b0   ;   // output flag done when 1 byte has converted
+    reg [511:0]                   MP_out_r               ; 
 
     wire                          EXE_flag_r             ;        
     //==================================================//
     //             Input Synchronization                //
     //==================================================//
-    always @(posedge clk) begin
-        Rx_Data_R_r             <= Rx_DV      ;
-        Rx_Data_r               <= Rx_Data_R_r;
+    always @(posedge clk or negedge rst_n) begin
+        if(!rst_n) begin
+                Rx_Data_R_r             <= 0          ;
+                Rx_Data_r               <= 0          ;
+        end else begin
+                Rx_Data_R_r             <= Rx_DV      ;
+                Rx_Data_r               <= Rx_Data_R_r;
+        end
     end
 
     //==================================================//
@@ -93,10 +99,10 @@ module Message_Packer #(
                 else 
                     next_state_r = s_EXE_BIT;
             s_SEND: // Send BYTE to SHA256 core one by one per clock
-                if(dout_count_r < 6'd63) 
-                    next_state_r = s_SEND;
-                else    
-                    next_state_r = s_CLEANUP;    
+                if (dout_count_r < 5'd15)
+                   next_state_r = s_SEND;    
+                else
+                    next_state_r = s_CLEANUP;
             s_CLEANUP: 
                     next_state_r = s_IDLE;
             default: 
@@ -116,70 +122,75 @@ module Message_Packer #(
     //==================================================//
     integer i;
     always @(posedge clk) begin
-        case(current_state_r)
-            s_IDLE: begin
-                uart_byte_r              <= 0;
-                din_count_r              <= 0;
-                dout_count_r             <= 0;
-                dv_flag_r                <= 1'b0;
+        if (!rst_n) begin
+            uart_byte_r              <= 0;
+            din_count_r              <= 0;
+            dv_flag_r                <= 1'b0;
+            MP_out_r                 <= {512{1'b0}};
+            for (i=0 ; i<64 ; i=i+1) begin
+                mem[i]  <= 8'd0;
+            end
+        end else begin
+                case(current_state_r)
+                    s_IDLE: begin
+                        uart_byte_r              <= 0;
+                        din_count_r              <= 0;
+                        dv_flag_r                <= 1'b0;
 
-                if (Rx_Data_r)
-                    uart_byte_r          <=  uart_byte_in;
-            end
-            s_RX_DATA_BITS: begin
-                if (Rx_Data_r) begin
-                    if(din_count_r < 6'd64) begin
-                        mem[din_count_r] <=  uart_byte_r;
-                        din_count_r      <=  din_count_r + 1;
-                    end 
-                end
-            end
-            s_EXE_BIT: begin
-                msg_len_bit             <= ( {58'd0, din_count_r} << 3 ); // din_count_r * 8
-                MP_out_r                <= {DATA_WIDTH{1'b0}};
-                for (i=0; i<64; i=i+1) begin
-                    if (i < din_count_r)
-                            MP_out_r[511 - i*8 -: 8] <= mem[i];
-                    else
-                            MP_out_r[511 - i*8 -: 8] <= 8'd0;  // zeros
-                end
-                if (din_count_r < 6'd64) begin
-                    MP_out_r[511 - din_count_r*8 -: 8] <= 8'h80;
-                end
-                    MP_out_r[63 -: 8]               <= msg_len_bit[63:56];
-                    MP_out_r[55 -: 8]               <= msg_len_bit[55:48];
-                    MP_out_r[47 -: 8]               <= msg_len_bit[47:40];
-                    MP_out_r[39 -: 8]               <= msg_len_bit[39:32];
-                    MP_out_r[31 -: 8]               <= msg_len_bit[31:24];
-                    MP_out_r[23 -: 8]               <= msg_len_bit[23:16];
-                    MP_out_r[15 -: 8]               <= msg_len_bit[15:8];
-                    MP_out_r[7  -: 8]               <= msg_len_bit[7:0];
+                        if (Rx_Data_r)
+                            uart_byte_r          <=  uart_byte_in;
+                    end
+                    s_RX_DATA_BITS: begin
+                        if (Rx_Data_r) begin
+                            mem[din_count_r] <=  uart_byte_r;
+                            if(din_count_r < 6'd63)              
+                                din_count_r      <=  din_count_r + 1;
+                        end
+                    end
+                    s_EXE_BIT: begin
+                        msg_len_bit             <= ( {58'd0, din_count_r} << 3 ); // din_count_r * 8
+                        for (i=0; i<64; i=i+1) begin
+                            if (i < din_count_r)
+                                    MP_out_r[511 - i*8 -: 8] <= mem[i];
+                            else
+                                    MP_out_r[511 - i*8 -: 8] <= 8'd0;  // zeros
+                        end
+                        if (din_count_r < 6'd64) begin
+                            MP_out_r[511 - din_count_r*8 -: 8] <= 8'h80;
+                        end
+                        
+                        for (i=0; i<8; i=i+1) begin
+                            MP_out_r[63 - i*8 -: 8] <= msg_len_bit[(7-i)*8 +: 8];
+                        end
 
-            end
-            s_SEND: begin
-                if(EXE_flag_r == 1'b1 || current_state_r == s_SEND) begin
-                    data_out                        <= MP_out_r[ 511 -(dout_count_r)*8 -:8];
-                    dv_flag_r                       <= 1'b1;
-                    if(dout_count_r < 6'd64)
-                        dout_count_r                <= dout_count_r + 1;
-                end else begin
-                    dout_count_r                    <=    0;          
-                    dv_flag_r                       <=    0;
-                end                     
-            end
-            s_CLEANUP: begin
-                din_count_r <= 6'd0;
-                dout_count_r <= 6'd0;
-                dv_flag_r <= 1'b0;
-            end
 
-            default: begin
-                uart_byte_r   <= 8'd0;
-                din_count_r   <= 6'd0;
-                dout_count_r  <= 6'd0;
-                dv_flag_r     <= 1'b0;
-            end
-        endcase
+                    end
+                    s_SEND: begin
+                        if(EXE_flag_r == 1'b1 ) begin
+                            data_out                        <= MP_out_r [511 - (dout_count_r)*32 -: 32];
+                            dv_flag_r                       <= 1'b1;
+                            if (dout_count_r < 5'd15)
+                                dout_count_r                <= dout_count_r + 1'b1;
+                        end else begin
+                            dout_count_r                    <= 0   ;
+                            dv_flag_r                       <= 1'b0;
+                        end           
+                    end
+                    
+                    s_CLEANUP: begin
+                        din_count_r                         <= 6'd0;
+                        dout_count_r                        <= 5'd0;
+                        dv_flag_r                           <= 1'b0;
+                    end
+
+                    default: begin
+                        uart_byte_r                         <= 8'd0;
+                        din_count_r                         <= 6'd0;
+                        dout_count_r                        <= 5'd0;
+                        dv_flag_r                           <= 1'b0;
+                    end
+                endcase
+        end
     end
 
 endmodule
