@@ -6,10 +6,10 @@
 // Create Date: 11/11/2025 01:18:27 PM
 // Design Name: 
 // Module Name: MC
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
+// Project Name: SHA-256
+// Target Devices: ZCU102 (FPGA Board)
+// Tool Versions: Vivado on Linux
+// Description: Message Compression does 64 loops based 64 words from ME and 8 initial hash value to produce the final 8 hash values.
 // 
 // Dependencies: 
 // 
