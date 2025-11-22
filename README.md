@@ -1,5 +1,5 @@
 # SHA-256
-Online sources I have reviewed 
+Online sources I have reviewed: 
 - Youtube           :  https://www.youtube.com/watch?v=orIgy2MjqrA&t=103s
 - Scientific article:  https://ieeexplore.ieee.org/abstract/document/9367201
 
