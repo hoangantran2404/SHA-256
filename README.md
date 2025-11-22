@@ -1,15 +1,18 @@
 # SHA-256
+Online sources I have reviewed 
+- Youtube           :  https://www.youtube.com/watch?v=orIgy2MjqrA&t=103s
+- Scientific article:  https://ieeexplore.ieee.org/abstract/document/9367201
 
+  
 1.Overview
 - This project implements the SHA-256 cryptographic hash algorithm entirely in Verilog on Vivado.
 - It is designed for FPGA synthesis, demonstrating digital design skills in pipelining, FSM control, message scheduling, and data path design.
 
 
 1.1 Dataflow:
-  - UART RX (8-bit)
+  - UART Receiver (8-bit)
   - Message Packer (8-bit → 512-bit)
   - SHA-256 Core (32-bit internal)
-  - Digest Splitter (32-bit → 8-bit)
   - UART TX (8-bit)
 
 
@@ -24,17 +27,17 @@
   
 3.Structures
 <img width="1133" height="1041" alt="Screenshot from 2025-11-12 07-17-00" src="https://github.com/user-attachments/assets/ddd3c297-8db7-406d-80e2-dbfb6a9751fc" />
-<img width="1627" height="998" alt="Screenshot from 2025-11-16 15-59-31" src="https://github.com/user-attachments/assets/d9ee3c24-6144-495f-a605-f0ffc12f46b3" />
+<img width="1604" height="242" alt="Screenshot from 2025-11-21 17-46-31" src="https://github.com/user-attachments/assets/6b844e0b-3bbe-48b0-8bc4-2187ed04af32" />
+
 
 
 📂 sha256_verilog
 src/
 - sha256_top.v            # Top-level module
+- sha256_core.v           # Include Message Expansion and Message Compression
 - receiver                # UART receiver for converting the string input to binary (designed by my teacher)
+- transmitter             # UART transmitter for converting the string output to binary (designed by my teacher)
 - rME.v                   # Message Expansion generates W(16 to 63) based on W(0 to 15)
-<img width="690" height="1342" alt="Screenshot from 2025-11-15 14-39-38" src="https://github.com/user-attachments/assets/c7ebb689-eaf9-4559-ba8c-c0831a606ebb" />
-<img width="1493" height="685" alt="Screenshot from 2025-11-15 14-36-22" src="https://github.com/user-attachments/assets/ef7c4dc3-7b7f-4c98-a2e1-e52866baab57" />
-
 - MC.v                    # Message Compression uses inital hash values and does 64 loops to generate the final hash values.
 - maj                     # Control Units instantiated in MC
 - CHS                     # Control Units instantiated in MC 
