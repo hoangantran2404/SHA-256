@@ -30,7 +30,7 @@ module rME #(
     input wire [4:0]             Rx_core_count, // Count how many word pass from Core to ME
     input wire [DATA_WIDTH-1:0]  data_in,
     
-    output wire [DATA_WIDTH-1:0] data_out,
+    output reg [DATA_WIDTH-1:0] data_out,
     output wire [1:0]            o_FSM_state,
     output wire [5:0]            o_round,
     output wire                  ME_dv_out
@@ -39,16 +39,14 @@ module rME #(
 //                   Registers                      //
 //==================================================//
 reg [DATA_WIDTH-1:0] i_m_r [0:63]      ;
-reg [DATA_WIDTH-1:0] data_out_r        ; // Save output temporaly
+//wire [DATA_WIDTH-1:0] data_out_r       ; // Save output temporaly
 
 reg [5:0]            round_r           ; // Internal counter   
-
-reg [DATA_WIDTH-1:0] i_sig0_r, i_sig1_r; 
 
 wire [DATA_WIDTH-1:0] i_sig0_w, i_sig1_w;
 wire [DATA_WIDTH-1:0] o_sig0_w;
 wire [DATA_WIDTH-1:0] o_sig1_w;
-
+wire [DATA_WIDTH-1:0] data_out_r       ; // Save output temporaly
 //==================================================//
 //                 State Encoding                   //
 //==================================================//
@@ -65,26 +63,25 @@ parameter s_CLEANUP      = 2'b11;
 //             Combinational Logic                  //
 //==================================================//
 assign o_FSM_state  = current_state_r;
-assign data_out     = data_out_r ;
 assign o_round      = round_r;
 assign ME_dv_out    = (current_state_r == s_ROUND16to63 && round_r == 6'd63)? 1'b1: 1'b0;
 
 assign i_sig0_w     = (current_state_r == s_ROUND16to63 && round_r >= 6'd15)? i_m_r[round_r - 6'd15] : {DATA_WIDTH{1'b0}} ;
 assign i_sig1_w     = (current_state_r == s_ROUND16to63 && round_r >= 6'd2)? i_m_r [round_r - 6'd2]  : {DATA_WIDTH{1'b0}} ;
-
+assign data_out_r   = i_m_r[round_r - 6'd16 ] + o_sig0_w + i_m_r[round_r - 6'd7] + o_sig1_w;  
 //==================================================//
 //             Instantiate module                   //
 //==================================================//
             SIG0 #(
                     .DATA_WIDTH(DATA_WIDTH)
                 ) sig0_inst (
-                    .S_SIG0_in(i_sig0_r), 
+                    .S_SIG0_in(i_sig0_w), 
                     .D_SIG0_out(o_sig0_w)
                 );
             SIG1 #(
                     .DATA_WIDTH(DATA_WIDTH)
                 ) sig1_inst (
-                    .S_SIG1_in(i_sig1_r), 
+                    .S_SIG1_in(i_sig1_w), 
                     .D_SIG1_out(o_sig1_w)
                 );
 
@@ -103,10 +100,13 @@ end
 always @(current_state_r or start_in or round_r) begin 
     case(current_state_r)                            
         s_IDLE:        
-            if(start_in && Rx_core_count < 5'd15)
+            if(start_in) begin
+                if( Rx_core_count < 5'd15)
                 next_state_r = s_IDLE;
             else
                 next_state_r = s_ROUND0to15;
+            end else 
+                next_state_r = s_IDLE;
         s_ROUND0to15:  
             if(round_r < 6'd15) 
                 next_state_r = s_ROUND0to15;
@@ -142,10 +142,7 @@ end
 integer i;
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-        i_sig0_r        <= 32'd0;
-        i_sig1_r        <= 32'd0;
-        data_out_r      <= 32'd0;
-
+        data_out        <= 32'd0;
         for (i=0; i < 64 ; i=i+1 ) begin
             i_m_r[i]    <= 32'd0;
         end
@@ -161,17 +158,14 @@ always @(posedge clk or negedge rst_n) begin
                 end
             end
             s_ROUND0to15: begin
-                    data_out_r          <= i_m_r[round_r];
+                    data_out            <= i_m_r[round_r];
             
             end
             s_ROUND16to63: begin
-                    i_sig0_r            <= i_sig0_w;
-                    i_sig1_r            <= i_sig1_w;
-                    i_m_r[round_r]      <= i_m_r[round_r - 6'd16 ] + o_sig0_w + i_m_r[round_r - 6'd7] + o_sig1_w;     
+                    i_m_r[round_r]      <= data_out_r;
+                    data_out            <= data_out_r;
             end
         default: begin
-            i_sig0_r <= 32'd0;
-            i_sig1_r <= 32'd0;
         end
     endcase
 end
