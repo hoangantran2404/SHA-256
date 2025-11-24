@@ -30,9 +30,8 @@ Online sources I have reviewed:
 <img width="1604" height="242" alt="Screenshot from 2025-11-21 17-46-31" src="https://github.com/user-attachments/assets/6b844e0b-3bbe-48b0-8bc4-2187ed04af32" />
 
 
-
-📂 sha256_verilog
-src/
+- README.md
+📂 RTL
 - sha256_top.v            # Top-level module
 - sha256_core.v           # Include Message Expansion and Message Compression
 - receiver                # UART receiver for converting the string input to binary (designed by my teacher)
@@ -45,10 +44,11 @@ src/
 - EP1                     # Control Units instantiated in MC
 - SIG0                    # Control Units instantiated in ME
 - SIG1                    # Control Units instantiated in ME
-sim/
+📂 Testbench
 - sha256_tb.v            # Testbench
-docs/
-- architecture_diagram.png
-- waveform_example.png
-- README.md
-- LICENSE
+📂 UART
+- receiver                # UART receiver for converting the string input to binary (designed by my teacher)
+- transmitter             # UART transmitter for converting the string output to binary (designed by my teacher)
+
+
+
