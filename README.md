@@ -44,8 +44,11 @@ Online sources I have reviewed:
 - EP1                     # Control Units instantiated in MC
 - SIG0                    # Control Units instantiated in ME
 - SIG1                    # Control Units instantiated in ME
+
 📂 Testbench
 - sha256_tb.v            # Testbench
+
+  
 📂 UART
 - receiver                # UART receiver for converting the string input to binary (designed by my teacher)
 - transmitter             # UART transmitter for converting the string output to binary (designed by my teacher)
