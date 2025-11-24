@@ -31,6 +31,8 @@ Online sources I have reviewed:
 
 
 - README.md
+
+  
 📂 RTL
 - sha256_top.v            # Top-level module
 - sha256_core.v           # Include Message Expansion and Message Compression
