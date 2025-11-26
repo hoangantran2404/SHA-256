@@ -27,9 +27,10 @@ module SHA256_core#(
     input wire                    clk, rst_n, 
     input wire                    MP_dv,  
     input wire [DATA_WIDTH -1 :0] message_in,
+    input wire [4:0]              counter,   // counter receiving input from Message Packer
 
     output reg [7 :0]             hash_out,
-    output reg                    core_dv_flag
+    output wire                   core_dv_flag
 );
 //==================================================//
 //                   Wire                           //
@@ -48,12 +49,11 @@ reg [2:0]  current_state_r  = s_IDLE ;
 reg [2:0]  next_state_r;
 
 localparam s_IDLE           =3'b000;
-localparam s_BLOCK_ME       =3'b001;
-localparam s_SEND_ME        =3'b010;
-localparam s_SEND_MC        =3'b011;
-localparam s_EXE_BIT        =3'b100; // Compile 256 hash value
-localparam s_SEND           =3'b101; // Send to UART transmitter
-localparam s_CLEANUP        =3'b110;
+localparam s_SEND_ME        =3'b001;
+localparam s_SEND_MC        =3'b010;
+localparam s_EXE_BIT        =3'b011; // Compile 256 hash value
+localparam s_SEND           =3'b100; // Send to UART transmitter
+localparam s_CLEANUP        =3'b101;
 
 //==================================================//
 //                   Registers                      //
@@ -67,13 +67,18 @@ reg      [4:0]                  din_count_r            ; // Counter to compile 5
 reg      [4:0]                  dout_count_r           ; // Counter to receive 256 bits from MC 
 reg      [4:0]                  Rx_ME_count_r          ; // Counter to send ME 512 bits  
 reg      [5:0]                  UART_ts_count_r        ; // Counter to send 8 bits/ clock to UART transmitter  
-reg                             ME_dv_in_r             ;
+
+
+
+
+wire      [3:0]                  MP_send_counter        ; 
+wire                             ME_dv_in_w            ;
 
 //==================================================//
 //             Combinational Logic                  //
 //==================================================//
-assign ME_block_flag_w = (din_count_r == 5'd15)  ? 1'b1 :1'b0;
-// assign core_dv_flag    = (current_state_r == s_SEND && UART_ts_count_r < 6'd32 )? 1'b1 :1'b0; 
+assign core_dv_flag    = (current_state_r == s_SEND );
+assign ME_dv_in_w      = (current_state_r == s_SEND_ME);
 
 //==================================================//
 //             Instantiate module                   //
@@ -86,7 +91,7 @@ rME # (
     .data_in        (   ME_byte_in_r     ),   
     .clk            (   clk              ),
     .rst_n          (   rst_n            ),
-    .start_in       (   ME_dv_in_r       ),
+    .start_in       (   ME_dv_in_w       ),
     .Rx_core_count  (   Rx_ME_count_r    ),
 
     .ME_dv_out      (   MC_dv_in_w       ),     
@@ -108,7 +113,9 @@ MC #(
     .round_in      (    round_w         ), 
     
     .data_out      (    MC_byte_out_w   ),
-    .valid_out     (    MC_dv_out_w     )
+    .valid_out     (    MC_dv_out_w     ),
+    .send_counter  (    MP_send_counter )
+
 );
 
 //==================================================//
@@ -130,31 +137,31 @@ end
 //==================================================//
 always @(Rx_Data_r or din_count_r or Rx_ME_count_r or MC_dv_in_w or MC_dv_out_w or round_w or dout_count_r or UART_ts_count_r) begin
     case(current_state_r)
-        s_IDLE:
-            if (Rx_Data_r       == 1'b1)     
-                next_state_r    = s_BLOCK_ME;
+        s_IDLE: // Load data from MP to core
+            if (Rx_Data_r       == 1'b1)    
+                if (din_count_r < 5'd15) 
+                    next_state_r    = s_IDLE;
+                else 
+                    next_state_r    = s_SEND_ME;
             else 
                 next_state_r    = s_IDLE;
-        s_BLOCK_ME: // Generate 512 bit block
-            if(din_count_r      < 5'd15)
-                next_state_r    =   s_BLOCK_ME;
-            else
-                next_state_r    =   s_SEND_ME;
-        s_SEND_ME: // Send data to ME 
+        s_SEND_ME: // Send data from core to ME 
             if(Rx_ME_count_r    < 5'd15)
                 next_state_r    =   s_SEND_ME;
             else 
                 next_state_r    =   s_SEND_MC;
         s_SEND_MC:// Receiver signal dv from ME to load to MC
-            if(MC_dv_in_w == 1'b1 && round_w < 6'd63)
+            if(MC_dv_in_w == 1'b1)
                 next_state_r    =   s_SEND_MC;
-            else
+            else if(FSM_state_w == 2'b11)//round_w =6'd0 when FSM in ME = s_CLEANUP
                 next_state_r    =   s_EXE_BIT;
+            else 
+                next_state_r    =   s_SEND_MC;
         s_EXE_BIT: // Generate 256 bit block
-            if(MC_dv_out_w == 1'b1 && dout_count_r < 5'd7)
-                next_state_r    = s_EXE_BIT;
-            else
+            if(MC_dv_out_w == 1'b1 && dout_count_r == 5'd7)
                 next_state_r    = s_SEND;
+            else
+                next_state_r    = s_EXE_BIT;
         s_SEND: // send to UART Transmitter
             if(UART_ts_count_r < 6'd32)
                 next_state_r    = s_SEND;
@@ -181,72 +188,47 @@ end
 integer i;
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-            for (i = 0; i < 16; i = i+1) begin
-                mem_in[i]      <= {DATA_WIDTH{1'b0}};
-            end
             mem_out         <= {256{1'b0}};
-            din_count_r     <= 5'd0;
             dout_count_r    <= 5'd0;
             Rx_ME_count_r   <= 5'd0;
             UART_ts_count_r <= 6'd0;
-            core_dv_flag    <= 1'd0;
             ME_byte_in_r    <= {DATA_WIDTH{1'b0}};
-            ME_dv_in_r      <= 1'b0;
             hash_out        <= 8'd0;
 
     end
     else begin 
         case(current_state_r)
                 s_IDLE: begin 
-                    for (i = 0; i < 16; i = i+1) begin
-                        mem_in[i]               <= 0;
-                    end
-                end
-                s_BLOCK_ME: begin
-                    ME_byte_in_r   <= 0;
-                    if(Rx_Data_r == 1'b1 ) begin
-                        mem_in[din_count_r]     <= message_in;
-                        if(din_count_r < 5'd15 ) 
-                            din_count_r         <= din_count_r + 1; 
+                    if (Rx_Data_r) begin
+                        mem_in[counter]         <= message_in;
+                        din_count_r             <= counter;
                     end
                 end
                 s_SEND_ME: begin
-                    if(ME_block_flag_w) begin
                             ME_byte_in_r        <= mem_in[Rx_ME_count_r]; 
-                            ME_dv_in_r          <= 1'b1;
                             if (Rx_ME_count_r < 5'd15) 
                                 Rx_ME_count_r   <= Rx_ME_count_r + 1 ;                   
-                    end else begin
-                            ME_dv_in_r          <= 1'b0;
-                    end    
                 end
                 s_SEND_MC:begin
-                    
                     dout_count_r      <=  0 ;
                     UART_ts_count_r   <=  0 ;
                 end
                 s_EXE_BIT: begin
                     if(MC_dv_out_w) begin
-                        mem_out[255 - dout_count_r*32 -: 32]    <= MC_byte_out_w;
-                        if(dout_count_r < 5'd7) 
-                            dout_count_r                        <= dout_count_r + 1;  
+                        mem_out[255 - MP_send_counter*32 -: 32]    <= MC_byte_out_w;
+                        dout_count_r                               <= MP_send_counter;  
                     end 
                 end
                 s_SEND: begin
-                        hash_out            <= mem_out[255 - UART_ts_count_r*8 -:8];
-                        core_dv_flag        <= (UART_ts_count_r < 6'd32)? 1'b1 : 1'b0;
+                        hash_out  <= mem_out[255 - UART_ts_count_r*8 -:8];
                         if (UART_ts_count_r < 6'd31)
                             UART_ts_count_r <= UART_ts_count_r + 1;
                 end
                 s_CLEANUP: begin
-                        din_count_r     <= 5'd0;
                         dout_count_r    <= 5'd0;
                         Rx_ME_count_r   <= 5'd0;
                         UART_ts_count_r <= 6'd0;
-                        ME_dv_in_r      <= 1'b0;
-                        for (i = 0; i < 16; i = i+1) begin
-                            mem_in[i] <= {DATA_WIDTH{1'b0}};
-                        end
+                        din_count_r     <= 5'd0;
                 end
                 default: begin
 
@@ -255,5 +237,3 @@ always @(posedge clk or negedge rst_n) begin
     end
 end
 endmodule
-
-
