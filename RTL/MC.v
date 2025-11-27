@@ -18,31 +18,26 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
-
-
 module MC#(
         parameter DATA_WIDTH = 32
 )
 (
     input wire                  clk,
     input wire                  rst_n,
-    input wire                  start_in,
     input wire [DATA_WIDTH-1:0] data_in,
-    input wire [1:0]            FSM_state_in,
-    input wire [5:0]            round_in,    
+    input wire [2:0]            FSM_core_in,
+    input wire [6:0]            core_count_in,    
 
-    output reg [DATA_WIDTH-1:0] data_out,
-    output wire                 valid_out,
-    output wire  [3:0]          send_counter
+    output wire [DATA_WIDTH-1:0] data_out,
+    output wire                  MC_dv_out
+    
     
 );
     //==================================================//
     //                   Registers                      //
     //==================================================//
-    wire                  SEND_flag_w    ;
-    wire [1:0]            FSM_state_w    ;   
-    wire [5:0]            round_count_w  ;
+    wire [2:0]            FSM_state_w    ;
+    wire [6:0]            round_count_w  ;
     wire [DATA_WIDTH-1:0] out_choose_w   ;
     wire [DATA_WIDTH-1:0] out_ep1_w      ;
     wire [DATA_WIDTH-1:0] out_ep0_w      ;
@@ -53,9 +48,8 @@ module MC#(
     wire [DATA_WIDTH-1:0] a_w,  b_w,    c_w,    d_w,    e_w,    f_w,    g_w,    h_w;
     wire [DATA_WIDTH-1:0] fa_w, fb_w,   fc_w,   fd_w,   fe_w,   ff_w,   fg_w,   fh_w;
 
-    reg  [3:0]            send_count_r   ;
-    reg  [DATA_WIDTH-1:0] i_T1, i_T2;
-    reg  [DATA_WIDTH-1:0] k_r;// Initial Hash value
+    reg  [DATA_WIDTH-1:0] i_T1, i_T2     ;
+    reg  [DATA_WIDTH-1:0] k_r            ;
     reg  [DATA_WIDTH-1:0] a_r   ,b_r    ,c_r    ,d_r,   e_r,   f_r,     g_r,    h_r;
 
     //==================================================//
@@ -170,18 +164,16 @@ module MC#(
     //             Combinational Logic                  //
     //==================================================//
 
-    assign FSM_state_w    = FSM_state_in;
-    assign round_count_w  = round_in;
-    assign valid_out      = (FSM_state_w == 2'b11);
-    assign send_counter   = send_count_r;
+    assign FSM_state_w    = FSM_core_in;
+    assign round_count_w  = core_count_in;
+    assign MC_dv_out      = (FSM_state_w == 3'b100);
 
-    assign T1_w =(FSM_state_w == 2'b01|| FSM_state_w == 2'b10) ? h_r + out_ep1_w + out_choose_w + k_r + data_in : 32'h0; 
-    assign T2_w =(FSM_state_w == 2'b01|| FSM_state_w == 2'b10) ? out_ep0_w + out_major_w : 32'h0;
+    assign T1_w =(FSM_state_w == 3'b011) ? h_r + out_ep1_w + out_choose_w + k_r + data_in : 32'h0; 
+    assign T2_w =(FSM_state_w == 3'b011) ? out_ep0_w + out_major_w : 32'h0;
 
     // Paste output of round 0 to 63 to wire 
     assign a_w  = T1_w + T2_w;
     assign e_w  = d_r  + T1_w;
-
     assign b_w  = a_r;
     assign c_w  = b_r;
     assign d_w  = c_r;
@@ -189,16 +181,22 @@ module MC#(
     assign g_w  = f_r;
     assign h_w  = g_r;
 
+    assign data_out = (FSM_state_w == 3'b100)?  (
+                                                (core_count_in == 3'd0)? (H0 + a_r):
+                                                (core_count_in == 3'd1)? (H1 + b_r):
+                                                (core_count_in == 3'd2)? (H2 + c_r):
+                                                (core_count_in == 3'd3)? (H3 + d_r):
+                                                (core_count_in == 3'd4)? (H4 + e_r):
+                                                (core_count_in == 3'd5)? (H5 + f_r):
+                                                (core_count_in == 3'd6)? (H6 + g_r):
+                                                (core_count_in == 3'd7)? (H7 + h_r): 32'd0):32'd0;
+                                           
     //==================================================//
     //                   Datapath                       //
     //==================================================//
-
     always @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
-            send_count_r    <= 0;
-            data_out        <= {DATA_WIDTH{1'b0}};
-
-            a_r             <= H0;// Delete a_r = 0; at reset block
+            a_r             <= H0;
             b_r             <= H1;
             c_r             <= H2;
             d_r             <= H3;
@@ -208,21 +206,7 @@ module MC#(
             h_r             <= H7;
         end
         else begin
-                if ( FSM_state_w == 2'b00 )begin      
-                    if (start_in) begin
-                        send_count_r    <= 0;
-                        a_r             <= a_w;
-                        b_r             <= b_w;
-                        c_r             <= c_w;
-                        d_r             <= d_w;
-                        e_r             <= e_w;
-                        f_r             <= f_w;
-                        g_r             <= g_w;
-                        h_r             <= h_w;
-                    end
-
-                end else if ((FSM_state_w == 2'b01|| FSM_state_w == 2'b10)) begin
-                    //update working register on each round
+                if (FSM_state_w == 3'b011)begin      
                         a_r             <= a_w;
                         b_r             <= b_w;
                         c_r             <= c_w;
@@ -232,21 +216,9 @@ module MC#(
                         g_r             <= g_w;
                         h_r             <= h_w;
                     
-                end else if (FSM_state_w == 2'b11) begin 
-                    if (send_count_r < 4'd8) begin
-                        case (send_count_r)
-                                3'd0: data_out <= H0 + a_r;
-                                3'd1: data_out <= H1 + b_r;
-                                3'd2: data_out <= H2 + c_r;
-                                3'd3: data_out <= H3 + d_r;
-                                3'd4: data_out <= H4 + e_r;
-                                3'd5: data_out <= H5 + f_r;
-                                3'd6: data_out <= H6 + g_r;
-                                3'd7: data_out <= H7 + h_r;
-                        endcase
-                        send_count_r <= send_count_r + 1;
-                    end
+                end else if (FSM_state_w == 3'b100) begin 
+                
                 end
             end
-    end
+        end
 endmodule
