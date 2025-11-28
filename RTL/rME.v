@@ -43,20 +43,20 @@ module rME #(
     wire [DATA_WIDTH-1:0] o_sig0_w          ;
     wire [DATA_WIDTH-1:0] o_sig1_w          ;
     wire [DATA_WIDTH-1:0] data_out_r        ; 
-    wire [5:0]            round_count_w     ;
+    wire [6:0]            round_count_w     ;
 
     //==================================================//
     //             Combinational Logic                  //
     //==================================================//
     assign round_count_w   = core_count_in;
 
-    assign i_sig0_w        = (FSM_core_in == 3'b011 && round_count_w >= 6'd15)? address_r[round_count_w - 6'd15] : {DATA_WIDTH{1'b0}} ;
-    assign i_sig1_w        = (FSM_core_in == 3'b011 && round_count_w >= 6'd2)?  address_r[round_count_w - 6'd2]  : {DATA_WIDTH{1'b0}} ;
+    assign i_sig0_w        = (FSM_core_in == 3'b011 && round_count_w >= 7'd15)? address_r[round_count_w - 7'd15] : {DATA_WIDTH{1'b0}} ;
+    assign i_sig1_w        = (FSM_core_in == 3'b011 && round_count_w >= 7'd2)?  address_r[round_count_w - 7'd2]  : {DATA_WIDTH{1'b0}} ;
     
     
-    assign data_out_r      = address_r[round_count_w - 6'd16 ] + o_sig0_w + address_r[round_count_w - 6'd7] + o_sig1_w;  
+    assign data_out_r      = address_r[round_count_w - 7'd16 ] + o_sig0_w + address_r[round_count_w - 7'd7] + o_sig1_w;  
 
-    assign data_out        =  (FSM_core_in == 3'b011) ? ((round_count_w < 16) ? address_r[round_count_w] : data_out_r) : 32'd0;
+    assign data_out        = (FSM_core_in == 3'b011) ? ((round_count_w < 16) ? address_r[round_count_w] : data_out_r) : 32'd0;
     //==================================================//
     //             Instantiate module                   //
     //==================================================//
@@ -84,18 +84,21 @@ module rME #(
                 address_r[i]    <= 32'd0;
             end
         end else begin
-            if (FSM_core_in == 3'b010)
-                address_r[core_count_in] <= data_in;
-            else if (FSM_core_in == 3'b011) begin
-                if(core_count_in < 6'd16) begin
-                    ME_dv_out               <= 1;
-                end else begin
-                    ME_dv_out               <= 1;
-                    address_r[core_count_in]<= data_out_r;
-                end 
+            if (FSM_core_in == 3'b010)begin
+                if(core_count_in > 0)
+                    address_r[core_count_in - 1] <= data_in;
+            end else if (FSM_core_in == 3'b011) begin
+                ME_dv_out               <= 1;
+                if (core_count_in == 0) begin
+                    address_r[15] <= data_in; 
+                end
+                else if (core_count_in >= 16) begin
+                    address_r[core_count_in] <= data_out_r;
+                end
             end else begin
                 ME_dv_out  <= 0;
             end
         end
     end
 endmodule
+
