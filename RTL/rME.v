@@ -89,9 +89,6 @@ module rME #(
                     address_r[core_count_in - 1] <= data_in;
             end else if (FSM_core_in == 3'b011) begin
                 ME_dv_out               <= 1;
-                if (core_count_in == 0) begin
-                    address_r[15] <= data_in; 
-                end
                 else if (core_count_in >= 16) begin
                     address_r[core_count_in] <= data_out_r;
                 end
