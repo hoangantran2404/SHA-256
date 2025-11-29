@@ -27,7 +27,7 @@ Online sources I have reviewed:
   
 3.Structures
 <img width="1133" height="1041" alt="Screenshot from 2025-11-12 07-17-00" src="https://github.com/user-attachments/assets/ddd3c297-8db7-406d-80e2-dbfb6a9751fc" />
-
+<img width="1734" height="357" alt="Screenshot from 2025-11-28 20-46-59" src="https://github.com/user-attachments/assets/a7dcfe47-d525-4f5b-98b3-2a5fd84f4fdd" />
 
 
 - README.md
@@ -50,9 +50,9 @@ Online sources I have reviewed:
 📂 Testbench
 - sha256_core_tb.v            # Testbench
 <img width="2171" height="1372" alt="Screenshot from 2025-11-28 01-38-52" src="https://github.com/user-attachments/assets/905a9184-a9f1-48c5-b73b-7a599ddc0434" />
-<img width="1734" height="357" alt="Screenshot from 2025-11-28 20-46-59" src="https://github.com/user-attachments/assets/a7dcfe47-d525-4f5b-98b3-2a5fd84f4fdd" />
 
 - rME_tb.v
+  
 - MC_tb.v
 
   
