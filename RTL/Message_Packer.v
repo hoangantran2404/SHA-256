@@ -25,96 +25,115 @@ module Message_Packer #(
     input  wire                             clk,    
     input  wire                             rst_n,  
     input  wire [7:0]                       uart_byte_in,     
-    input  wire                             Rx_DV,                      //=1 means load input 
+    input  wire                             Rx_DV_in,
 
-    output reg [DATA_WIDTH-1 :0]            data_out,
+    output wire [DATA_WIDTH-1 :0]           data_out,
+    output wire [4:0]                       MP_counter_out, 
     output wire                             data_valid     
 );
 
     //==================================================//
     //                 State Encoding                   //
     //==================================================//
-    reg  [2:0] current_state_r = s_IDLE;
+    reg  [2:0] current_state_r;
     reg  [2:0] next_state_r;
 
     localparam s_IDLE         = 3'b000;
     localparam s_RX_DATA_BITS = 3'b001; 
     localparam s_EXE_BIT      = 3'b011;
+    localparam s_WAIT_CORE    = 3'b110; 
     localparam s_SEND         = 3'b100;
     localparam s_CLEANUP      = 3'b101;
-
 
     //==================================================//
     //                   Registers                      //
     //==================================================//
-    reg [63:0]                    msg_len_bit            ;
-    reg [7:0]                     uart_byte_r            ;    // Store the input 
-    reg [7:0]                     mem [0:63]             ;  
-    reg                           Rx_Data_r              ; 
-    reg                           Rx_Data_R_r            ;   
-    reg [5:0]                     din_count_r            ;    // counter BYTE from UART Receiver
-    reg [4:0]                     dout_count_r           ;   
-    reg                           dv_flag_r   =   1'b0   ;   // output flag done when 1 byte has converted
-    reg [511:0]                   MP_out_r               ; 
+    reg                           Rx_Data_r, Rx_Data_R_r;    
+    reg [6:0]                     MP_count_r;
+    reg [6:0]                     RX_len_bit;
+    reg [7:0]                     address_r [0:63];   
 
-    wire                          EXE_flag_r             ;        
+    wire [63:0]                   msg_len_bits; 
+    
+    wire                          RX_done_flag_w; 
+    wire                          SEND_done_flag_w;       
+
     //==================================================//
     //             Input Synchronization                //
     //==================================================//
     always @(posedge clk or negedge rst_n) begin
         if(!rst_n) begin
-                Rx_Data_R_r             <= 0          ;
-                Rx_Data_r               <= 0          ;
+                Rx_Data_R_r <= 0; Rx_Data_r <= 0;
         end else begin
-                Rx_Data_R_r             <= Rx_DV      ;
-                Rx_Data_r               <= Rx_Data_R_r;
+                Rx_Data_R_r <= Rx_DV_in; Rx_Data_r <= Rx_Data_R_r;
         end
     end
 
     //==================================================//
     //             Combinational Logic                  //
     //==================================================//
-    //assign data_out = (current_state_r == s_CLEANUP )? MP_out_r : 0;
-    assign data_valid           = dv_flag_r;
-    assign EXE_flag_r           = (current_state_r == s_EXE_BIT && din_count_r == 6'd63)? 1'b1 : 1'b0;
+    
+    // Valid bật ngay khi vào WAIT hoặc SEND
+    assign data_valid       = (current_state_r == s_SEND || current_state_r == s_WAIT_CORE);
+    assign MP_counter_out   = MP_count_r[4:0]; 
+
+    assign RX_done_flag_w   = (current_state_r == s_RX_DATA_BITS && MP_count_r == 7'd63); 
+    
+    assign SEND_done_flag_w = (current_state_r == s_SEND && MP_count_r == 7'd15); 
+    
+    assign msg_len_bits     = {53'd0, RX_len_bit, 3'b000}; 
+
+    assign data_out = (current_state_r == s_SEND || current_state_r == s_WAIT_CORE) ? 
+                                                                                    {address_r[MP_count_r*4 + 0],
+                                                                                    address_r[MP_count_r*4 + 1],
+                                                                                    address_r[MP_count_r*4 + 2],
+                                                                                    address_r[MP_count_r*4 + 3]} : 32'd0;
 
     //==================================================//
     //                  Next State Logic                //
     //==================================================//
-    always @(Rx_Data_r or din_count_r or EXE_flag_r or dout_count_r) begin
+    always @(*) begin
         case(current_state_r)
             s_IDLE: 
-                if(Rx_Data_r == 1'b1) 
+                if(Rx_Data_r) 
                     next_state_r = s_RX_DATA_BITS;
-                else
+                else          
                     next_state_r = s_IDLE;
+            
             s_RX_DATA_BITS: 
-                if(din_count_r < 6'd63) 
+                if(RX_done_flag_w) 
+                    next_state_r = s_EXE_BIT; 
+                else               
                     next_state_r = s_RX_DATA_BITS;
-                else 
-                    next_state_r = s_EXE_BIT;
-            s_EXE_BIT: // Block 512 bit
-                if(EXE_flag_r == 1'b1) // Done make block
+            
+            s_EXE_BIT: 
+                next_state_r = s_WAIT_CORE; 
+                
+            s_WAIT_CORE:
+                next_state_r = s_SEND;
+
+            s_SEND: 
+                if (SEND_done_flag_w) 
+                    next_state_r = s_CLEANUP;    
+                else                  
                     next_state_r = s_SEND;
-                else 
-                    next_state_r = s_EXE_BIT;
-            s_SEND: // Send BYTE to SHA256 core one by one per clock
-                if (dout_count_r < 5'd15)
-                   next_state_r = s_SEND;    
-                else
-                    next_state_r = s_CLEANUP;
+            
             s_CLEANUP: 
-                    next_state_r = s_IDLE;
+                next_state_r = s_IDLE;
+            
             default: 
-                next_state_r     =  s_IDLE;
+                next_state_r = s_IDLE;
         endcase
     end
 
     //==================================================//
     //                State Register (FSM)              //
     //==================================================//
-    always @(posedge clk ) begin
-        current_state_r <= next_state_r;
+    always @(posedge clk or negedge rst_n ) begin
+        if(!rst_n) 
+            current_state_r <= s_IDLE;
+        else       
+            current_state_r <= next_state_r;
     end
 
     //==================================================//
@@ -123,73 +142,55 @@ module Message_Packer #(
     integer i;
     always @(posedge clk) begin
         if (!rst_n) begin
-            uart_byte_r              <= 0;
-            din_count_r              <= 0;
-            dv_flag_r                <= 1'b0;
-            MP_out_r                 <= {512{1'b0}};
-            for (i=0 ; i<64 ; i=i+1) begin
-                mem[i]  <= 8'd0;
-            end
+            MP_count_r <= 0;
+            RX_len_bit <= 0;
+            for (i=0 ; i<64 ; i=i+1) 
+                address_r[i] <= 8'd0;
         end else begin
-                case(current_state_r)
-                    s_IDLE: begin
-                        uart_byte_r              <= 0;
-                        din_count_r              <= 0;
-                        dv_flag_r                <= 1'b0;
+            
+            if(current_state_r != next_state_r) begin
+                if (next_state_r == s_IDLE || next_state_r == s_WAIT_CORE)
+                    MP_count_r <= 0;
+            end
 
-                        if (Rx_Data_r)
-                            uart_byte_r          <=  uart_byte_in;
-                    end
-                    s_RX_DATA_BITS: begin
-                        if (Rx_Data_r) begin
-                            mem[din_count_r] <=  uart_byte_r;
-                            if(din_count_r < 6'd63)              
-                                din_count_r      <=  din_count_r + 1;
-                        end
-                    end
-                    s_EXE_BIT: begin
-                        msg_len_bit             <= ( {58'd0, din_count_r} << 3 ); // din_count_r * 8
-                        for (i=0; i<64; i=i+1) begin
-                            if (i < din_count_r)
-                                    MP_out_r[511 - i*8 -: 8] <= mem[i];
-                            else
-                                    MP_out_r[511 - i*8 -: 8] <= 8'd0;  // zeros
-                        end
-                        if (din_count_r < 6'd64) begin
-                            MP_out_r[511 - din_count_r*8 -: 8] <= 8'h80;
-                        end
-                        
-                        for (i=0; i<8; i=i+1) begin
-                            MP_out_r[63 - i*8 -: 8] <= msg_len_bit[(7-i)*8 +: 8];
-                        end
+            case(current_state_r)
+                s_IDLE: begin
+                    MP_count_r <= 0;
+                    RX_len_bit <= 0; 
+                end
 
-
+                s_RX_DATA_BITS: begin
+                    if (Rx_Data_r) begin
+                        address_r[MP_count_r] <= uart_byte_in;             
+                        MP_count_r            <= MP_count_r + 1;
+                        RX_len_bit            <= MP_count_r + 1; 
                     end
-                    s_SEND: begin
-                        if(EXE_flag_r == 1'b1 ) begin
-                            data_out                        <= MP_out_r [511 - (dout_count_r)*32 -: 32];
-                            dv_flag_r                       <= 1'b1;
-                            if (dout_count_r < 5'd15)
-                                dout_count_r                <= dout_count_r + 1'b1;
-                        end else begin
-                            dout_count_r                    <= 0   ;
-                            dv_flag_r                       <= 1'b0;
-                        end           
+                end
+
+                s_EXE_BIT: begin
+                    address_r[RX_len_bit] <= 8'h80;
+                    
+                    for (i=0; i<64; i=i+1) begin
+                        if (i > RX_len_bit && i < 56)
+                            address_r[i] <= 8'h00;
                     end
                     
-                    s_CLEANUP: begin
-                        din_count_r                         <= 6'd0;
-                        dout_count_r                        <= 5'd0;
-                        dv_flag_r                           <= 1'b0;
+                    for (i=0; i<8; i=i+1) begin
+                        address_r[63 - i] <= msg_len_bits[i*8 +: 8];
                     end
+                end
 
-                    default: begin
-                        uart_byte_r                         <= 8'd0;
-                        din_count_r                         <= 6'd0;
-                        dout_count_r                        <= 5'd0;
-                        dv_flag_r                           <= 1'b0;
-                    end
-                endcase
+                s_WAIT_CORE: begin
+
+                end
+
+                s_SEND: begin
+                    MP_count_r <= MP_count_r + 1'b1;          
+                end
+
+                s_CLEANUP: begin                         
+                end
+            endcase
         end
     end
 
