@@ -18,8 +18,6 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
-
 module SHA256_top(
     input  wire clk,   // ZCU102 clock input
     input  wire rst_n,
@@ -35,6 +33,7 @@ wire        UART_done_flag ;
 //Message Packer
 wire [31:0] MP_data_out    ;
 wire        MP_dv_flag     ;
+wire [4:0]  MP_counter_w   ;
 //SHA256_core
 wire [7:0]  SHA_core_out   ;
 wire        SHA_dv_flag    ;
@@ -53,10 +52,11 @@ receiver module_receiver (
 Message_Packer module_message_packer(
                 .clk            (clk           ),
                 .rst_n          (rst_n         ),
-                .Rx_DV          (UART_done_flag),       
+                .Rx_DV_in       (UART_done_flag),       
                 .uart_byte_in   (UART_data_out ),        
 
                 .data_out       (MP_data_out   ),
+                .MP_counter_out (MP_counter_w  ),
                 .data_valid     (MP_dv_flag    )  
 );
 
@@ -64,8 +64,9 @@ Message_Packer module_message_packer(
 SHA256_core module_SHA256_core(
                 .clk            (clk          ), 
                 .rst_n          (rst_n        ), 
-                .MP_dv          (MP_dv_flag   ),
+                .MP_dv_in       (MP_dv_flag   ),
                 .message_in     (MP_data_out  ),
+                .MP_counter_in  (MP_counter_w),
 
                 .hash_out       (SHA_core_out ),
                 .core_dv_flag   (SHA_dv_flag  )
