@@ -25,6 +25,7 @@ module SHA256_core#(
 )(
     input wire                      clk, rst_n,
     input wire                      MP_dv_in,
+    input wire [4:0]                MP_counter_in,
     input wire [DATA_WIDTH -1 :0]   message_in,
 
     output wire [7 :0]               hash_out,
@@ -42,42 +43,43 @@ module SHA256_core#(
     wire [DATA_WIDTH -1:0]          MC_byte_out_w;
 
 //==================================================//
-// State Encoding //
+//              State Encoding                      //
 //==================================================//
     reg [2:0] current_state_r       = s_IDLE ;
     reg [2:0] next_state_r;
 
     parameter s_IDLE                =  3'b000;
     parameter s_LOAD                =  3'b001;
-    parameter s_LOAD_ME             =  3'b010; // Load to ME
-    parameter s_EXE_BIT             =  3'b011; // Starting caculation in ME and MC(parallel)
-    parameter s_RX_MC               =  3'b100; // receive data from MC
+    parameter s_LOAD_ME             =  3'b010; 
+    parameter s_EXE_BIT             =  3'b011; 
+    parameter s_RX_MC               =  3'b100; 
     parameter s_SEND_TX             =  3'b101;
     parameter s_CLEANUP             =  3'b110;
 //==================================================//
-// Registers //
+//                  Registers                       //
 //==================================================//
-    reg                             Rx_Data_r ; // Flag using for load input from MP to ME block
+    reg                             Rx_Data_r ; 
     reg                             Rx_Data_R_r ;
     reg [DATA_WIDTH -1 :0]          ME_byte_in_r ;
     reg [DATA_WIDTH -1 :0]          address_in_r[0:15] ;
 
     reg [255 :0]                    address_out_r ;
-    reg [6:0]                       core_count_r ; // counter round run in ME and MC
+    reg [6:0]                       core_count_r ; 
 
 //==================================================//
-// Combinational Logic //
+//                  Combinational Logic             //
 //==================================================//
     assign core_dv_flag    = (current_state_r == s_SEND_TX );
-    assign load_flag_w     = (current_state_r == s_LOAD && core_count_r == 7'd15);
-    assign load_ME_flag_w  = (current_state_r == s_LOAD_ME && core_count_r == 7'd15);
+    assign load_flag_w     = (current_state_r == s_LOAD    && core_count_r == 7'd15);
+    assign load_ME_flag_w  = (current_state_r == s_LOAD_ME && core_count_r == 7'd16);// It is 7'd16 because when core_count_r =7'd15, 
+                                                                                     //W[15] is on the wire and it does not have enough time to load to rME so we will wait one dead cylce.
     assign EXE_flag_w      = (current_state_r == s_EXE_BIT && core_count_r == 7'd63);
     assign RX_flag_w       = (current_state_r == s_RX_MC   && core_count_r == 7'd7);
     assign send_flag_w     = (current_state_r == s_SEND_TX && core_count_r == 7'd31);
 
     assign hash_out        = (current_state_r == s_SEND_TX)? address_out_r[255 - core_count_r*8 -:8]: 8'd0;
 //==================================================//
-// Instantiate module //
+//                  Instantiate module              //
 //==================================================//
     rME # (
         .DATA_WIDTH(DATA_WIDTH)
@@ -108,7 +110,7 @@ module SHA256_core#(
 
 
 //==================================================//
-// Input Synchronization                            //
+//              Input Synchronization               //
 //==================================================//
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -120,11 +122,11 @@ always @(posedge clk or negedge rst_n) begin
     end
 end
 //==================================================//
-// Next State Logic                                 //
+//                  Next State LogicS               //
 //==================================================//
 always @(Rx_Data_r or load_flag_w or load_ME_flag_w or EXE_flag_w or RX_flag_w or send_flag_w or current_state_r) begin
     case(current_state_r)
-        s_IDLE: // Load data from MP to core
+        s_IDLE: 
             if (Rx_Data_r == 1'b1)
                 next_state_r = s_LOAD;
             else 
@@ -135,7 +137,7 @@ always @(Rx_Data_r or load_flag_w or load_ME_flag_w or EXE_flag_w or RX_flag_w o
             else
                 next_state_r = s_LOAD;
             
-        s_LOAD_ME: // Send data from core to ME
+        s_LOAD_ME: 
             if (load_ME_flag_w)
                 next_state_r = s_EXE_BIT;
             else 
@@ -167,7 +169,7 @@ always @(Rx_Data_r or load_flag_w or load_ME_flag_w or EXE_flag_w or RX_flag_w o
 end
 
 //==================================================//
-// State Register (FSM)                             //
+//              State Register (FSM)                //
 //==================================================//
 always @(posedge clk or negedge rst_n) begin
     if(!rst_n)
@@ -177,7 +179,7 @@ always @(posedge clk or negedge rst_n) begin
 end
 
 //==================================================//
-// Datapath //
+//                     Datapath                     //
 //==================================================//
 integer i;
 always @(posedge clk or negedge rst_n) begin
@@ -192,7 +194,7 @@ always @(posedge clk or negedge rst_n) begin
             core_count_r                <= 0;
             case(current_state_r)
                 s_LOAD: begin
-                    address_in_r[core_count_r] <= message_in;
+                    address_in_r[MP_counter_in] <= message_in;
                 end
                 s_LOAD_ME: begin
                     ME_byte_in_r <= address_in_r[core_count_r];
@@ -205,15 +207,12 @@ always @(posedge clk or negedge rst_n) begin
                 end
              endcase
         end else begin
-        // case(current_state_r)
-        //     s_LOAD,s_LOAD_ME,s_EXE_BIT,s_RX_MC,s_SEND_TX: core_count_r <= core_count_r + 1;
-        // endcase 
         case(current_state_r)
             s_IDLE: begin
             end
             s_LOAD: begin
-                address_in_r[core_count_r] <= message_in;
-                core_count_r            <= core_count_r + 1;
+                address_in_r[MP_counter_in] <= message_in;
+                core_count_r                <= core_count_r + 1;
             end
             s_LOAD_ME: begin
                 ME_byte_in_r            <= address_in_r[core_count_r];
