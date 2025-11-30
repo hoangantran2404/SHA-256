@@ -26,6 +26,7 @@ module SHA_256_core_tb();
     reg                             clk, rst_n  ;
     reg                             start_in    ;
     reg [DATA_WIDTH -1: 0]          data_in     ;
+    reg [4:0]                       MP_counter_in;
 
     wire [7:0]                      data_out    ;
     wire                            dv_flag     ;
@@ -48,6 +49,7 @@ module SHA_256_core_tb();
         .clk            (clk),
         .rst_n          (rst_n),
         .MP_dv_in       (start_in),
+        .MP_counter_in  (MP_counter_in),
         .message_in     (data_in),
 
         .hash_out       (data_out),
@@ -100,11 +102,13 @@ module SHA_256_core_tb();
         $display("[Time %0t] Loading Input Data...", $time);
         
 
-        start_in = 1;
+        start_in        = 1;
+        MP_counter_in   = 0;
         repeat(3) @(posedge clk);
 
         for (i = 0; i < 16; i = i+1) begin
-            data_in = core_byte_in[i];
+            MP_counter_in   = i[4:0];
+            data_in         = core_byte_in[i];
             @(posedge clk); 
         end
         start_in = 0;
