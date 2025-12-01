@@ -22,23 +22,23 @@
 
 module SHA256_top_tb();
     parameter DATA_WIDTH    = 32;
-    parameter TIMEOUT_LIMIT = 20000; // Tăng thời gian chờ cho việc padding
+    parameter TIMEOUT_LIMIT = 20000; 
 
     reg                    clk;
     reg                    rst_n;
     reg  [7:0]             uart_byte_in;
     reg                    RX_dv_in;
 
-    // Sửa data_out_w thành 8-bit để khớp với SHA_core_out
+ 
     wire [7:0]             data_out_w;
     wire                   SHA_dv_out_w;
 
     reg [7:0]              MP_byte_in[0:2]; // Message "abc" (3 bytes)
-    reg [DATA_WIDTH-1 :0]  expected_H[0:7]; // Kết quả mong đợi (8 words)
+    reg [DATA_WIDTH-1 :0]  expected_H[0:7];
     
-    // Thanh ghi để thu thập 4 byte thành 1 word 32-bit
+
     reg [31:0]             hash_word_reg; 
-    // Mảng để lưu trữ 8 words kết quả cuối cùng
+
     reg [DATA_WIDTH-1 :0]  final_hash_words[0:7];
 
     integer i, errors;
@@ -51,7 +51,7 @@ module SHA256_top_tb();
         .UART_done_flag     (RX_dv_in),
         .UART_data_out      (uart_byte_in),
 
-        .SHA_core_out       (data_out_w), // 8-bit output
+        .SHA_core_out       (data_out_w), 
         .SHA_dv_flag        (SHA_dv_out_w)
     );
 
