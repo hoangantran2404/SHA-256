@@ -27,10 +27,9 @@ module Message_Packer #(
     input  wire                             clk,    
     input  wire                             rst_n,  
     input  wire [7:0]                       uart_byte_in,     
-    input  wire                             Rx_DV_in,
+    input  wire                             RX_DV_in,
 
     output wire [DATA_WIDTH-1 :0]           data_out,
-    output wire [7:0]                       MP_counter_out, 
     output wire                             MP_dv_out     
 );
 
@@ -50,7 +49,6 @@ module Message_Packer #(
     //==================================================//
     //                   Registers                      //
     //==================================================//
-    reg                           Rx_Data_r, Rx_Data_R_r;    
     reg [6:0]                     MP_count_r;
     reg [6:0]                     RX_len_bit;
     reg [7:0]                     address_r [0:63]; 
@@ -62,24 +60,10 @@ module Message_Packer #(
     wire [63:0]                   msg_len_bits;      
 
     //==================================================//
-    //             Input Synchronization                //
-    //==================================================//
-    always @(posedge clk or negedge rst_n) begin
-        if(!rst_n) begin
-                Rx_Data_R_r <= 0; 
-                Rx_Data_r <= 0;
-        end else begin
-                Rx_Data_R_r <= Rx_DV_in; 
-                Rx_Data_r <= Rx_Data_R_r;
-        end
-    end
-
-    //==================================================//
     //             Combinational Logic                  //
     //==================================================//
     
-    assign MP_dv_out       = (current_state_r == s_SEND || current_state_r == s_WAIT_CORE);
-    assign MP_counter_out   = MP_count_r; 
+    assign MP_dv_out       = (current_state_r == s_SEND|| current_state_r == s_WAIT_CORE);//|| current_state_r == s_WAIT_CORE
 
     assign timeout_flag_w   = (time_cnt_r == TIMEOUT_LIMIT);
     assign RX_done_flag_w   = (current_state_r == s_RX_DATA_BITS) && ((MP_count_r == 7'd64) || timeout_flag_w) ; 
@@ -87,19 +71,19 @@ module Message_Packer #(
 
     assign msg_len_bits     = {53'd0, RX_len_bit, 3'b000}; 
 
-    assign data_out = (current_state_r == s_SEND || current_state_r == s_WAIT_CORE) ? 
-                                                                                    {address_r[MP_count_r*4 + 0],
-                                                                                    address_r[MP_count_r*4 + 1],
-                                                                                    address_r[MP_count_r*4 + 2],
-                                                                                    address_r[MP_count_r*4 + 3]} : 32'd0;
+    assign data_out = (current_state_r == s_SEND|| current_state_r == s_WAIT_CORE ) ? 
+                                                    {address_r[MP_count_r*4 + 0],
+                                                    address_r[MP_count_r*4 + 1],
+                                                    address_r[MP_count_r*4 + 2],
+                                                    address_r[MP_count_r*4 + 3]} : 32'd0;
 
     //==================================================//
     //                  Next State Logic                //
     //==================================================//
-    always @(current_state_r or Rx_Data_r or RX_done_flag_w or SEND_done_flag_w) begin
+    always @(current_state_r or RX_DV_in or RX_done_flag_w or SEND_done_flag_w) begin
         case(current_state_r)
             s_PRELOAD: 
-                if(Rx_Data_r) 
+                if(RX_DV_in) 
                     next_state_r = s_RX_DATA_BITS;
                 else          
                     next_state_r = s_PRELOAD;
@@ -147,7 +131,7 @@ module Message_Packer #(
         if(!rst_n)
             time_cnt_r <=0;
         else if(current_state_r == s_RX_DATA_BITS)begin
-            if(Rx_Data_r)
+            if(RX_DV_in)
                 time_cnt_r <= 0;
             else if(time_cnt_r < TIMEOUT_LIMIT)
                 time_cnt_r <= time_cnt_r + 1;
@@ -165,19 +149,15 @@ module Message_Packer #(
 
             case(current_state_r)
                 s_PRELOAD: begin
-                   if (Rx_Data_r) begin
-                       
+                   if (RX_DV_in) begin
                         address_r[0] <= uart_byte_in;
                         MP_count_r   <= 1;
                         RX_len_bit   <= 1;
-                    end else begin
-                        MP_count_r   <= 0;
-                        RX_len_bit   <= 0;
                     end
                 end
 
                 s_RX_DATA_BITS: begin
-                    if(Rx_Data_r)
+                    if(RX_DV_in)
                         if(MP_count_r < 7'd64) begin
                             address_r[MP_count_r] <= uart_byte_in;             
                             MP_count_r            <= MP_count_r + 1;
