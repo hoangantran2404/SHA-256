@@ -37,7 +37,7 @@
 `timescale 1ns / 1ps
 
 module receiver #(
-    parameter CLKS_PER_BIT = 217 // Time for read 1 bit UART
+    parameter CLKS_PER_BIT = 868 // Time for read 1 bit UART
 )(
     input  wire        			CLK,
     input  wire        			Rx_Serial_in,
@@ -64,7 +64,7 @@ module receiver #(
     //Đây là bộ đếm clock để đo thời gian trong 1 bit UART.
     //Mỗi khi FPGA clock lên 1 lần, Clock_Count_r tăng 1.
     //Khi Clock_Count_r = CLKS_PER_BIT - 1 → đã đi hết thời gian của 1 bit UART.
-    reg  [7:0]    Clock_Count_r = 0;
+	reg  [10:0]    Clock_Count_r = 0;
     reg  [2:0]    Bit_Index_r   = 0;    //confirm what bit we are converting
     reg  [7:0]    Rx_Byte_r     = 0;    // Save temporaly the byte we receive
     reg           Rx_DV_r       = 0;    // Data_valid
