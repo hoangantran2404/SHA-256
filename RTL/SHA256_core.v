@@ -25,10 +25,12 @@ module SHA256_core#(
 )(
     input wire                      clk, rst_n,
     input wire                      MP_dv_in,
+    input wire                      Tx_Done_in,
+    input wire                      Tx_Active_in,
     input wire [DATA_WIDTH -1 :0]   message_in,
 
     output wire [7 :0]               hash_out,
-    output wire                     core_dv_flag
+    output wire                      core_dv_flag
 );
 //==================================================//
 //                  Wire                            //
@@ -57,6 +59,7 @@ module SHA256_core#(
 //==================================================//
 //                  Registers                       //
 //==================================================//
+    reg                             Tx_Done_prev_r;
     reg [DATA_WIDTH -1 :0]          ME_byte_in_r ;
     reg [DATA_WIDTH -1 :0]          address_in_r[0:15] ;
 
@@ -66,13 +69,13 @@ module SHA256_core#(
 //==================================================//
 //                  Combinational Logic             //
 //==================================================//
-    assign core_dv_flag    = (current_state_r == s_SEND_TX );
+    assign core_dv_flag    = (current_state_r == s_SEND_TX && Tx_Active_in == 1'b0);
     assign load_flag_w     = (current_state_r == s_LOAD    && core_count_r == 7'd16);
     assign load_ME_flag_w  = (current_state_r == s_LOAD_ME && core_count_r == 7'd16);// It is 7'd16 because when core_count_r =7'd15, 
                                                                                      //W[15] is on the wire and it does not have enough time to load to rME so we will wait one dead cylce.
     assign EXE_flag_w      = (current_state_r == s_EXE_BIT && core_count_r == 7'd63);
     assign RX_flag_w       = (current_state_r == s_RX_MC   && core_count_r == 7'd8);
-    assign send_flag_w     = (current_state_r == s_SEND_TX && core_count_r == 7'd31);
+    assign send_flag_w     = (current_state_r == s_SEND_TX && core_count_r == 7'd32);
 
     assign hash_out        = (current_state_r == s_SEND_TX)? address_out_r[255 - core_count_r*8 -:8]: 8'd0;
 //==================================================//
@@ -174,6 +177,8 @@ always @(posedge clk or negedge rst_n) begin
         for(i=0 ; i<16 ;i= i + 1) 
             address_in_r[i] <= 0;
     end else begin
+        Tx_Done_prev_r <= Tx_Done_in;
+        
         if(current_state_r != next_state_r) begin
             core_count_r                <= 0;
         end else begin
@@ -203,7 +208,9 @@ always @(posedge clk or negedge rst_n) begin
                 end
             end
             s_SEND_TX: begin
-                core_count_r            <= core_count_r + 1;
+                if(Tx_Done_in == 1'b1 && Tx_Done_prev_r == 1'b0) begin
+                    core_count_r            <= core_count_r + 1;
+                end
             end
             s_CLEANUP: begin
             end
