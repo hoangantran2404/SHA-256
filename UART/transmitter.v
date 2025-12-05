@@ -35,7 +35,7 @@
 `timescale 1ns / 1ps
 
 module transmitter #(
-    parameter CLKS_PER_BIT = 217
+    parameter CLKS_PER_BIT = 868
 )(
     input  wire       CLK,
     input  wire       Tx_DV_in,
@@ -60,7 +60,7 @@ module transmitter #(
     reg [2:0] current_state_r = s_IDLE;   // current state
     reg [2:0] next_state_r;               // next state
 
-    reg [7:0] Clock_Count_r  = 8'd0;
+    reg [10:0] Clock_Count_r  = 8'd0;
     reg [2:0] Bit_Index_r    = 3'd0;
     reg [7:0] Tx_Data_r      = 8'd0;
     reg       Tx_Done_r      = 1'b0;
