@@ -19,10 +19,9 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-
 module Message_Packer #(
     parameter DATA_WIDTH    = 32,
-    parameter TIMEOUT_LIMIT = 4340 // wait for 2 byte (2170 clock/1 byte)
+    parameter TIMEOUT_LIMIT = 10000 // wait for 2 byte (2170 clock/1 byte)
 )(
     input  wire                             clk,    
     input  wire                             rst_n,  
