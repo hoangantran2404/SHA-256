@@ -18,136 +18,156 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
-
 module SHA256_top_tb();
-    parameter DATA_WIDTH    = 32;
-    parameter TIMEOUT_LIMIT = 20000; 
+    //==================================================//
+    //              PARAMETERS & CONFIGURATION          //
+    //==================================================//
+    parameter CLK_PERIOD    = 10;
+    parameter CLKS_PER_BIT  = 868;
+    parameter BIT_PERIOD    = CLK_PERIOD * CLKS_PER_BIT;
 
-    reg                    clk;
-    reg                    rst_n;
-    reg  [7:0]             uart_byte_in;
-    reg                    RX_dv_in;
-
- 
-    wire [7:0]             data_out_w;
-    wire                   SHA_dv_out_w;
-
-    reg [7:0]              MP_byte_in[0:2]; // Message "abc" (3 bytes)
-    reg [DATA_WIDTH-1 :0]  expected_H[0:7];
+    //==================================================//
+    //                 SIGNALS DECLARATION              //
+    //==================================================//
+    reg clk;
+    reg rst_n;
+    reg data_in;
     
+    wire data_out;
 
-    reg [31:0]             hash_word_reg; 
+    reg [7:0] expected_hash [0:31];
+    reg [7:0] received_hash [0:31];
+    
+    integer     byte_idx;
+    integer     error_count = 0;
+   
+    //==================================================//
+    //               DUT INSTANTIATION                  //
+    //==================================================//
+    SHA256_top SHA256(
+        .clk        (clk),
+        .rst_n      (rst_n),
+        .data_in    (data_in),
 
-    reg [DATA_WIDTH-1 :0]  final_hash_words[0:7];
-
-    integer i, errors;
-    reg [4:0] word_count; // Đếm 8 words (0-7)
-    reg [2:0] byte_count; // Đếm 4 bytes (0-3)
-
-    SHA256_top DUT(
-        .clk                (clk),
-        .rst_n              (rst_n),
-        .UART_done_flag     (RX_dv_in),
-        .UART_data_out      (uart_byte_in),
-
-        .SHA_core_out       (data_out_w), 
-        .SHA_dv_flag        (SHA_dv_out_w)
+        .data_out   (data_out)
     );
-
-    initial begin 
-        clk = 0; 
-        forever #5 clk = ~clk; 
-    end
-
+    //==================================================//
+    //               CLOCK GENERATION                   //
+    //==================================================//
     initial begin
-        $display("========================================");
-        $display("   TESTBENCH STARTING: SHA-256 TOP      ");
-        $display("========================================");
-
-
-        $readmemh("/home/hoangan2404/Project_0/code_C/Project_SHA256/expected_H.txt", expected_H); 
-        
-
-        MP_byte_in[0] = 8'h61; // 'a'
-        MP_byte_in[1] = 8'h62; // 'b'
-        MP_byte_in[2] = 8'h63; // 'c'
-
-        rst_n = 1; 
-        RX_dv_in = 0; 
-        uart_byte_in = 0; 
-        errors = 0;
-        hash_word_reg = 0;
-        word_count = 0;
-        byte_count = 0;
-        
-
-        repeat(5) @(posedge clk); 
-        rst_n = 0;
-        repeat(5) @(posedge clk); 
-        rst_n = 1;
-        
-
-        $display("[Time %0t] Sending 3 bytes: 'a', 'b', 'c'", $time);
-        for (i = 0; i < 3; i = i+1) begin
-            uart_byte_in <= MP_byte_in[i]; 
-            RX_dv_in     <= 1;
-            @(posedge clk); 
-            RX_dv_in     <= 0;
-            @(posedge clk); 
-        end
-        uart_byte_in <= 0;
-
-        $display("[Time %0t] Data sent. Waiting for SHA_dv_flag (Core output valid)...", $time);
-        
-
-        i = 0;
-        while (SHA_dv_out_w !== 1 && i < TIMEOUT_LIMIT) begin
-            @(posedge clk);
-            i = i + 1;
-        end
-
-        if (i == TIMEOUT_LIMIT) begin
-            $display("!!! ERROR: TIMEOUT. Valid flag (SHA_dv_out_w) never went HIGH after %0d clocks.", TIMEOUT_LIMIT);
-            $stop;
-        end
-       
-        $display("[Time %0t] Valid Detected! Starting data collection.", $time);
-
-
-        for(i = 0; i < 32; i = i + 1) begin
-            
-            hash_word_reg = {hash_word_reg[23:0], data_out_w};
-            byte_count    = byte_count + 1;
-
-            if(byte_count == 4) begin
-                final_hash_words[word_count] = hash_word_reg;
-                
-                $display("[Word %0d] Expected %h | Got %h", 
-                    word_count, expected_H[word_count], final_hash_words[word_count]);
-
-                if (final_hash_words[word_count] !== expected_H[word_count]) begin
-                    $display("   --> ERROR MISMATCH: Word %0d is incorrect!", word_count);
-                    errors = errors + 1;
-                end 
-                
-                byte_count = 0;
-                word_count = word_count + 1;
-                hash_word_reg = 0;
-            end
-            @(posedge clk);
-        end
-
-        $display("----------------------------------------");
-        if (errors == 0) begin
-            $display("SUCCESS: SHA-256 Verilog matches C Reference!");
-            $display("Final Hash: %h%h%h%h%h%h%h%h", 
-                final_hash_words[0], final_hash_words[1], final_hash_words[2], final_hash_words[3],
-                final_hash_words[4], final_hash_words[5], final_hash_words[6], final_hash_words[7]);
-        end else begin
-            $display("FAILURE: Found %0d mismatches.", errors);
-        end
-        $display("----------------------------------------");
-        $stop;
+        clk = 0;
+        forever #5 clk = ~clk;
     end
+    //==================================================//
+    //                      TASK                        //
+    //==================================================//
+    task send_top_byte;
+        input [7:0] message_in;
+        integer i;
+        begin
+
+            data_in = 1'b0;
+            #(BIT_PERIOD);
+
+            for(i=0; i< 8; i= i+1) begin
+                data_in = message_in[i];
+                #(BIT_PERIOD);
+            end
+
+            data_in = 1'b1;
+            #(BIT_PERIOD);
+
+            #(BIT_PERIOD);
+        end
+    endtask
+
+    task receive_top_byte;
+        output [7:0] o_Data;
+        integer i;
+        begin
+
+            wait(data_out == 1'b0);
+            
+            #(BIT_PERIOD + (BIT_PERIOD / 2));
+
+            for (i=0; i<8; i=i+1) begin
+                o_Data[i] = data_out;
+                #(BIT_PERIOD);
+            end
+
+             #(BIT_PERIOD / 2);
+        end
+    endtask
+    //==================================================//
+    //             Golden Initialization                //
+    //==================================================//
+    initial begin
+        expected_hash[0]  = 8'hba; expected_hash[1]  = 8'h78; expected_hash[2]  = 8'h16; expected_hash[3]  = 8'hbf;
+        expected_hash[4]  = 8'h8f; expected_hash[5]  = 8'h01; expected_hash[6]  = 8'hcf; expected_hash[7]  = 8'hea;
+        expected_hash[8]  = 8'h41; expected_hash[9]  = 8'h41; expected_hash[10] = 8'h40; expected_hash[11] = 8'hde;
+        expected_hash[12] = 8'h5d; expected_hash[13] = 8'hae; expected_hash[14] = 8'h22; expected_hash[15] = 8'h23;
+        expected_hash[16] = 8'hb0; expected_hash[17] = 8'h03; expected_hash[18] = 8'h61; expected_hash[19] = 8'ha3;
+        expected_hash[20] = 8'h96; expected_hash[21] = 8'h17; expected_hash[22] = 8'h7a; expected_hash[23] = 8'h9c;
+        expected_hash[24] = 8'hb4; expected_hash[25] = 8'h10; expected_hash[26] = 8'hff; expected_hash[27] = 8'h61;
+        expected_hash[28] = 8'hf2; expected_hash[29] = 8'h00; expected_hash[30] = 8'h15; expected_hash[31] = 8'had;
+    end
+    //==================================================//
+    //           MAIN TEST SEQUENCE                     //
+    //==================================================//
+    initial begin
+        rst_n       = 1'b0;
+        data_in     = 1;
+        #100
+        rst_n       = 1'b1;
+        #100
+
+        $display("==================================================");
+        $display("     STARTING SHA256 SYSTEM TEST (UART)           ");
+        $display("==================================================");
+
+        
+        $display("[PC -> FPGA] Sending: 'a' (0x61)");
+        send_top_byte(8'h61);
+        
+        $display("[PC -> FPGA] Sending: 'b' (0x62)");
+        send_top_byte(8'h62);
+        
+        $display("[PC -> FPGA] Sending: 'c' (0x63)");
+        send_top_byte(8'h63);
+
+        $display("--------------------------------------------------");
+        $display("[INFO] Transmission complete. Waiting for FPGA calculation and response...");
+        
+       
+        for (byte_idx = 0; byte_idx < 32; byte_idx = byte_idx + 1) begin
+           
+            receive_top_byte(received_hash[byte_idx]);
+            
+            $display("[FPGA -> PC] Byte %0d/32: Received 0x%h | Expected 0x%h", 
+                     byte_idx + 1, received_hash[byte_idx], expected_hash[byte_idx]);
+                     
+            if (received_hash[byte_idx] !== expected_hash[byte_idx]) begin
+                $display("   --> ERROR! Mismatch at this byte.");
+                error_count = error_count + 1;
+            end
+        end
+
+      
+        #1000;
+        $display("==================================================");
+        if (error_count == 0) begin
+            $display("   FINAL RESULT: *** TEST PASSED ***");
+            $display("   Hash for 'abc' is completely correct!");
+        end else begin
+            $display("   FINAL RESULT: *** TEST FAILED ***");
+            $display("   Total incorrect bytes: %0d", error_count);
+        end
+        $display("==================================================");
+        
+        $stop;
+
+    end
+
+
+
 endmodule
