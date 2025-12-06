@@ -27,7 +27,8 @@ Online sources I have reviewed:
   
 3.Structures
 <img width="1133" height="1041" alt="Screenshot from 2025-11-12 07-17-00" src="https://github.com/user-attachments/assets/ddd3c297-8db7-406d-80e2-dbfb6a9751fc" />
-<img width="1734" height="357" alt="Screenshot from 2025-11-28 20-46-59" src="https://github.com/user-attachments/assets/a7dcfe47-d525-4f5b-98b3-2a5fd84f4fdd" />
+<img width="1725" height="290" alt="Screenshot from 2025-12-05 18-11-22" src="https://github.com/user-attachments/assets/0e1b83a0-42b7-4430-b2c5-84a47247800f" />
+
 
 
 - README.md
