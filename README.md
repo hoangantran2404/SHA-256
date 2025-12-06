@@ -38,6 +38,7 @@ Online sources I have reviewed:
 - sha256_core.v           # Include Message Expansion and Message Compression
 - receiver                # UART receiver for converting the string input to binary (designed by my teacher)
 - transmitter             # UART transmitter for converting the string output to binary (designed by my teacher)
+- MP.v                    # Receive data from UART RX, compile 16 Words(32 bits/ 1 Word) and send to CORE.
 - rME.v                   # Message Expansion generates W(16 to 63) based on W(0 to 15)
 - MC.v                    # Message Compression uses inital hash values and does 64 loops to generate the final hash values.
 - maj                     # Control Units instantiated in MC
@@ -48,15 +49,18 @@ Online sources I have reviewed:
 - SIG1                    # Control Units instantiated in ME
 
 📂 Testbench
-- sha256_top_tb.v            # Testbench
-<img width="2181" height="1406" alt="Screenshot from 2025-11-30 18-23-35" src="https://github.com/user-attachments/assets/a3f67c34-93dd-4e1b-891c-c509b66364b2" />
+- sha256_top_tb.v            # Testbench of top module including UART RX-> Message Packer -> CORE -> UART TX
+<img width="2200" height="1379" alt="Screenshot from 2025-12-05 18-05-25" src="https://github.com/user-attachments/assets/00a28505-5d77-4cf9-9855-50d376b72357" />
 
-- sha256_core_tb.v            # Testbench
+
+- sha256_core_tb.v            # Testbench of SHA256 core including ME, MC and other computational logic.
 <img width="2171" height="1372" alt="Screenshot from 2025-11-28 01-38-52" src="https://github.com/user-attachments/assets/905a9184-a9f1-48c5-b73b-7a599ddc0434" />
 
-- rME_tb.v                    # Testbench
+- rME_tb.v                    # Testbench of Message Expansion.
   
-- MC_tb.v                     # Testbench
+- MC_tb.v                     # Testbench of Message Compression.
+  
+- MP_tb.v                     # Testbench of Message Packer.
 
   
 📂 UART
