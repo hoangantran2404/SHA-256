@@ -9,7 +9,7 @@
 // Project Name: SHA 256 (hash algorithm)
 // Target Devices: ZCU102 FPGA Board
 // Tool Versions: Vivado on Linux
-// Description: Message_Packer's functionality is combined all data receiving from UART receiver (8 bits/clock) to 16 words (32 bits/1 word) 
+// Description: Message_Packer's functionality is combined all data receiving from UART receiver (8 bits/clock) to 16 words (32 bits/1 word) and send to core.
 // and passes it to SHA-256 core.
 // Dependencies: 
 // 
@@ -20,8 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 module Message_Packer #(
-    parameter DATA_WIDTH    = 32,
-    parameter TIMEOUT_LIMIT = 10000 // wait for 2 byte (2170 clock/1 byte)
+    parameter DATA_WIDTH    = 32
 )(
     input  wire                             clk,    
     input  wire                             rst_n,  
@@ -40,41 +39,28 @@ module Message_Packer #(
 
     localparam s_PRELOAD      = 3'b000;
     localparam s_RX_DATA_BITS = 3'b001; 
-    localparam s_EXE_BIT      = 3'b010;
-    localparam s_WAIT_CORE    = 3'b011; 
-    localparam s_SEND         = 3'b100;
-    localparam s_CLEANUP      = 3'b101;
+    localparam s_SEND         = 3'b010;
+    localparam s_CLEANUP      = 3'b011;
 
     //==================================================//
     //                   Registers                      //
     //==================================================//
     reg [6:0]                     MP_count_r;
-    reg [6:0]                     RX_len_bit;
-    reg [7:0]                     address_r [0:63]; 
-    reg [31:0]                    time_cnt_r; // time control  
+    reg [511:0]                   address_r ;  
 
     wire                          RX_done_flag_w; 
-    wire                          SEND_done_flag_w;   
-    wire                          timeout_flag_w; 
-    wire [63:0]                   msg_len_bits;      
+    wire                          SEND_done_flag_w;    
 
     //==================================================//
     //             Combinational Logic                  //
     //==================================================//
-    
-    assign MP_dv_out       = (current_state_r == s_SEND|| current_state_r == s_WAIT_CORE);//|| current_state_r == s_WAIT_CORE
 
-    assign timeout_flag_w   = (time_cnt_r == TIMEOUT_LIMIT);
-    assign RX_done_flag_w   = (current_state_r == s_RX_DATA_BITS) && ((MP_count_r == 7'd64) || timeout_flag_w) ; 
+    assign MP_dv_out       = (current_state_r == s_SEND);
+
+    assign RX_done_flag_w   = (current_state_r == s_RX_DATA_BITS) && (MP_count_r == 7'd64) ; 
     assign SEND_done_flag_w = (current_state_r == s_SEND && MP_count_r == 7'd15); 
 
-    assign msg_len_bits     = {53'd0, RX_len_bit, 3'b000}; 
-
-    assign data_out = (current_state_r == s_SEND|| current_state_r == s_WAIT_CORE ) ? 
-                                                    {address_r[MP_count_r*4 + 0],
-                                                    address_r[MP_count_r*4 + 1],
-                                                    address_r[MP_count_r*4 + 2],
-                                                    address_r[MP_count_r*4 + 3]} : 32'd0;
+    assign data_out = (current_state_r == s_SEND ) ?  address_r[511-32*MP_count_r -:32] : 32'd0;
 
     //==================================================//
     //                  Next State Logic                //
@@ -89,16 +75,10 @@ module Message_Packer #(
             
             s_RX_DATA_BITS: 
                 if(RX_done_flag_w) 
-                    next_state_r = s_EXE_BIT; 
+                    next_state_r = s_SEND; 
                 else               
                     next_state_r = s_RX_DATA_BITS;
-            
-            s_EXE_BIT: // DONE in one cycle
-                next_state_r = s_WAIT_CORE; 
-                
-            s_WAIT_CORE:
-                next_state_r = s_SEND;
-
+        
             s_SEND: 
                 if (SEND_done_flag_w) 
                     next_state_r = s_CLEANUP;    
@@ -126,60 +106,33 @@ module Message_Packer #(
     //==================================================//
     //                   Datapath                       //
     //==================================================//
-    always @(posedge clk or negedge rst_n) begin
-        if(!rst_n)
-            time_cnt_r <=0;
-        else if(current_state_r == s_RX_DATA_BITS)begin
-            if(RX_DV_in)
-                time_cnt_r <= 0;
-            else if(time_cnt_r < TIMEOUT_LIMIT)
-                time_cnt_r <= time_cnt_r + 1;
-        end else
-            time_cnt_r <= 0;
-    end
     integer i;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             MP_count_r <= 0;
-            RX_len_bit <= 0;
-            for (i=0 ; i<64 ; i=i+1) 
-                address_r[i] <= 8'd0;
+            address_r  <= 512'd0;
         end else begin
+            if (current_state_r != next_state_r) begin
+                if (next_state_r == s_SEND)      
+                    MP_count_r <= 0; 
+                else if (next_state_r == s_PRELOAD) 
+                    MP_count_r <= 0;
+            end
 
             case(current_state_r)
                 s_PRELOAD: begin
                    if (RX_DV_in) begin
-                        address_r[0] <= uart_byte_in;
+                        address_r[511 -: 8] <= uart_byte_in;
                         MP_count_r   <= 1;
-                        RX_len_bit   <= 1;
                     end
                 end
 
                 s_RX_DATA_BITS: begin
                     if(RX_DV_in)
                         if(MP_count_r < 7'd64) begin
-                            address_r[MP_count_r] <= uart_byte_in;             
-                            MP_count_r            <= MP_count_r + 1;
-                            RX_len_bit            <= MP_count_r + 1; 
+                            address_r[511 - 8*MP_count_r -:8] <= uart_byte_in;             
+                            MP_count_r                        <= MP_count_r + 1;
                         end
-                end
-
-                s_EXE_BIT: begin
-                    address_r[RX_len_bit] <= 8'h80;
-                    
-                    for (i=0; i<64; i=i+1) begin
-                        if (i > RX_len_bit && i < 56)
-                            address_r[i] <= 8'h00;
-                    end
-                    
-                    for (i=0; i<8; i=i+1) begin
-                        address_r[63 - i] <= msg_len_bits[i*8 +: 8];
-                    end
-                    MP_count_r <= 0;
-                end
-
-                s_WAIT_CORE: begin
-                    
                 end
 
                 s_SEND: begin
