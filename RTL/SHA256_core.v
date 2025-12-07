@@ -18,19 +18,17 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
-
 module SHA256_core#(
     parameter DATA_WIDTH =32
 )(
     input wire                      clk, rst_n,
     input wire                      MP_dv_in,
-    input wire                      Tx_Done_in,
     input wire                      Tx_Active_in,
+    input wire                      Tx_Done_in,
     input wire [DATA_WIDTH -1 :0]   message_in,
 
-    output wire [7 :0]               hash_out,
-    output wire                      core_dv_flag
+    output wire [7 :0]              hash_out,
+    output wire                     core_dv_flag
 );
 //==================================================//
 //                  Wire                            //
@@ -43,23 +41,24 @@ module SHA256_core#(
     wire [DATA_WIDTH -1:0]          ME_byte_out_w;
     wire [DATA_WIDTH -1:0]          MC_byte_out_w;
 
+    reg                             Tx_Done_prev_r;
 //==================================================//
 //              State Encoding                      //
 //==================================================//
+
+    localparam s_IDLE                =  3'b000;
+    localparam s_LOAD                =  3'b001;
+    localparam s_LOAD_ME             =  3'b010; 
+    localparam s_EXE_BIT             =  3'b011; 
+    localparam s_RX_MC               =  3'b100; 
+    localparam s_SEND_TX             =  3'b101;
+    localparam s_CLEANUP             =  3'b110;
+    
     reg [2:0] current_state_r       = s_IDLE ;
     reg [2:0] next_state_r;
-
-    parameter s_IDLE                =  3'b000;
-    parameter s_LOAD                =  3'b001;
-    parameter s_LOAD_ME             =  3'b010; 
-    parameter s_EXE_BIT             =  3'b011; 
-    parameter s_RX_MC               =  3'b100; 
-    parameter s_SEND_TX             =  3'b101;
-    parameter s_CLEANUP             =  3'b110;
 //==================================================//
 //                  Registers                       //
 //==================================================//
-    reg                             Tx_Done_prev_r;
     reg [DATA_WIDTH -1 :0]          ME_byte_in_r ;
     reg [DATA_WIDTH -1 :0]          address_in_r[0:15] ;
 
@@ -69,7 +68,7 @@ module SHA256_core#(
 //==================================================//
 //                  Combinational Logic             //
 //==================================================//
-    assign core_dv_flag    = (current_state_r == s_SEND_TX && Tx_Active_in == 1'b0);
+    assign core_dv_flag    = (current_state_r == s_SEND_TX && Tx_Active_in == 1'b0 );
     assign load_flag_w     = (current_state_r == s_LOAD    && core_count_r == 7'd16);
     assign load_ME_flag_w  = (current_state_r == s_LOAD_ME && core_count_r == 7'd16);// It is 7'd16 because when core_count_r =7'd15, 
                                                                                      //W[15] is on the wire and it does not have enough time to load to rME so we will wait one dead cylce.
@@ -177,16 +176,24 @@ always @(posedge clk or negedge rst_n) begin
         for(i=0 ; i<16 ;i= i + 1) 
             address_in_r[i] <= 0;
     end else begin
-        Tx_Done_prev_r <= Tx_Done_in;
-        
+
+        Tx_Done_prev_r   <=  Tx_Done_in;
+
         if(current_state_r != next_state_r) begin
             core_count_r                <= 0;
+
+            if (current_state_r == s_IDLE && next_state_r == s_LOAD) begin
+                address_in_r[0] <= message_in; 
+                core_count_r    <= 1;          
+            end
+            
         end else begin
         case(current_state_r)
             s_IDLE: begin
-                if(MP_dv_in) 
+                if(MP_dv_in)begin 
                     address_in_r[0]           <= message_in;
                     core_count_r              <= 1;
+                end
             end
             s_LOAD: begin
                 if(MP_dv_in) begin
@@ -208,7 +215,7 @@ always @(posedge clk or negedge rst_n) begin
                 end
             end
             s_SEND_TX: begin
-                if(Tx_Done_in == 1'b1 && Tx_Done_prev_r == 1'b0) begin
+                if(Tx_Done_in == 1'b1 && Tx_Done_prev_r == 1'b0) begin   
                     core_count_r            <= core_count_r + 1;
                 end
             end
