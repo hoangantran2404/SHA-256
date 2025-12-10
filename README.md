@@ -51,7 +51,8 @@ Online sources I have reviewed:
 
 📂 Testbench
 - sha256_top_tb.v            # Testbench of top module including UART RX-> Message Packer -> CORE -> UART TX
-<img width="2200" height="1379" alt="Screenshot from 2025-12-05 18-05-25" src="https://github.com/user-attachments/assets/00a28505-5d77-4cf9-9855-50d376b72357" />
+<img width="2219" height="1408" alt="Screenshot from 2025-12-09 21-44-42" src="https://github.com/user-attachments/assets/1233b0d6-477a-46e6-be04-ca3bdb39c576" />
+
 
 
 - sha256_core_tb.v            # Testbench of SHA256 core including ME, MC and other computational logic.
@@ -67,6 +68,12 @@ Online sources I have reviewed:
 📂 UART
 - receiver                # UART receiver for converting the string input to binary (designed by my teacher)
 - transmitter             # UART transmitter for converting the string output to binary (designed by my teacher)
+
+📂 Embedded Code
+- MEvMC.c                 # Code in C langauge for testing does hash value in hardware is similar to software
+- SHA256.c                # Control the activation of MEvMC.c
+<img width="2047" height="1486" alt="Screenshot from 2025-12-09 21-44-55" src="https://github.com/user-attachments/assets/23af4f8e-6765-4307-85d9-21a2fd1803da" />
+
 
 
 
