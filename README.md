@@ -73,6 +73,7 @@ Online sources I have reviewed:
 - main.c                  # This file allows us to communicate to ZCU102 board and load input to board, then print out the hash output.
 <img width="1144" height="528" alt="Screenshot from 2025-12-10 15-03-21" src="https://github.com/user-attachments/assets/028b6177-73ba-47f0-a85b-c90bbcde0a3f" />
 - MEvMC.c                 # Code in C langauge for testing does hash value in hardware is similar to software
+
 - SHA256.c                # Control the activation of MEvMC.c
 <img width="2047" height="1486" alt="Screenshot from 2025-12-09 21-44-55" src="https://github.com/user-attachments/assets/23af4f8e-6765-4307-85d9-21a2fd1803da" />
 
