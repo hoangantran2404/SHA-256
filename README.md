@@ -21,38 +21,38 @@ The project demonstrates advanced digital design skills, including:
 The data processing flow moves from the UART receiver through the SHA-256 core and back to the transmitter.
 <img width="1133" height="1041" alt="Screenshot from 2025-11-12 07-17-00" src="https://github.com/user-attachments/assets/ddd3c297-8db7-406d-80e2-dbfb6a9751fc" />
 
-# 4. Project Structure
+## 4. Project Structure
 The repository is organized as follows:
 - README.md
 
 📂 RTL
-│   ├── sha256_top.v      # Top-level module integrating UART and Core
-│   ├── sha256_core.v     # Core logic (Message Expansion + Compression)
-│   ├── MP.v              # Message Packer (RX -> 512-bit chunks)
-│   ├── rME.v             # Message Expansion (Generates W[16..63])
-│   ├── MC.v              # Message Compression (64-loop hash generation)
-│   ├── maj.v             # 'Majority' Logic Control Unit
-│   ├── CHS.v             # 'Choose' Logic Control Unit
-│   ├── EP0.v             # Sigma0 Logic
-│   ├── EP1.v             # Sigma1 Logic
-│   ├── SIG0.v            # Lower-sigma0 Logic
-│   ├── SIG1.v            # Lower-sigma1 Logic
-│   ├── receiver.v        # UART Receiver (External IP)
-│   └── transmitter.v     # UART Transmitter (External IP)
-│
-├── Testbench/            # Simulation Files
-│   ├── sha256_top_tb.v   # Full system simulation (UART -> Core -> UART)
-│   ├── sha256_core_tb.v  # Core logic simulation
-│   ├── rME_tb.v          # Message Expansion unit test
-│   ├── MC_tb.v           # Message Compression unit test
-│   └── MP_tb.v           # Message Packer unit test
-│   └── RX_tb.v           # UART Receiver unit test
-│   └── TX_tb.v           # UART Transmitter unit test
-│
-└── Embedded_Code/        # C Code for ZCU102 Processor
-    ├── main.c            # UART communication and Input loading
-    ├── MEvMC.c           # Software-side hash verification
-    └── SHA256.c          # Activation control for MEvMC
+  -  sha256_top.v      # Top-level module integrating UART and Core
+  -  sha256_core.v     # Core logic (Message Expansion + Compression)
+  -  MP.v              # Message Packer (RX -> 512-bit chunks)
+  -  rME.v             # Message Expansion (Generates W[16..63])
+  -  MC.v              # Message Compression (64-loop hash generation)
+  -  maj.v             # 'Majority' Logic Control Unit
+  -  CHS.v             # 'Choose' Logic Control Unit
+  -  EP0.v             # Sigma0 Logic
+  -  EP1.v             # Sigma1 Logic
+  -  SIG0.v            # Lower-sigma0 Logic
+  -  SIG1.v            # Lower-sigma1 Logic
+  -  receiver.v        # UART Receiver (External IP)
+  -  transmitter.v     # UART Transmitter (External IP)
+
+📂 Testbench          # Simulation Files
+  - sha256_top_tb.v   # Full system simulation (UART -> Core -> UART)
+  - sha256_core_tb.v  # Core logic simulation
+  - rME_tb.v          # Message Expansion unit test
+  - MC_tb.v           # Message Compression unit test
+  - MP_tb.v           # Message Packer unit test
+  - RX_tb.v           # UART Receiver unit test
+  - TX_tb.v           # UART Transmitter unit test
+
+📂 Embedded_Code      # C Code for ZCU102 Processor
+  - main.c            # UART communication and Input loading
+  - MEvMC.c           # Software-side hash verification
+  - SHA256.c          # Activation control for MEvMC
 
 # 5. Getting Started
 
