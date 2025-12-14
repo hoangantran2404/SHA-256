@@ -1,6 +1,6 @@
 # SHA-256 Verilog Implementation on ZCU102
 
-# 1. Overview
+## 1. Overview
 This project implements the SHA-256 cryptographic hash algorithm entirely in Verilog using the Xilinx Vivado Design Suite. It is designed for FPGA synthesis, specifically targeting the ZCU102 board.
 
 The project demonstrates advanced digital design skills, including:
@@ -9,7 +9,7 @@ The project demonstrates advanced digital design skills, including:
   - Data Path Design: Efficient 32-bit internal processing with 512-bit message blocks.
   - Hardware-Software Co-design: Integration with C-based embedded code for verification.
   
-# 2. Features
+## 2. Features
   - Compliant: Fully compliant with the standard SHA-256 specification.
   - Modular: distinct units for Message Expansion (ME), Message Compression (MC), and Control.
   - High Throughput: Pipeline-friendly design architecture.
@@ -17,7 +17,7 @@ The project demonstrates advanced digital design skills, including:
   - Verified: Includes a comprehensive Testbench for simulation and C code for hardware verification.
   - Hardware Ready: Synthesizable and tested on the Xilinx ZCU102 FPGA board.
   
-# 3. Architecture & Dataflow
+## 3. Architecture & Dataflow
 The data processing flow moves from the UART receiver through the SHA-256 core and back to the transmitter.
 <img width="1133" height="1041" alt="Screenshot from 2025-11-12 07-17-00" src="https://github.com/user-attachments/assets/ddd3c297-8db7-406d-80e2-dbfb6a9751fc" />
 
@@ -25,7 +25,7 @@ The data processing flow moves from the UART receiver through the SHA-256 core a
 The repository is organized as follows:
 - README.md
 
-📂 RTL
+###📂 RTL
   -  sha256_top.v      # Top-level module integrating UART and Core
   -  sha256_core.v     # Core logic (Message Expansion + Compression)
   -  MP.v              # Message Packer (RX -> 512-bit chunks)
@@ -40,7 +40,7 @@ The repository is organized as follows:
   -  receiver.v        # UART Receiver (External IP)
   -  transmitter.v     # UART Transmitter (External IP)
 
-📂 Testbench          # Simulation Files
+###📂 Testbench          # Simulation Files
   - sha256_top_tb.v   # Full system simulation (UART -> Core -> UART)
   - sha256_core_tb.v  # Core logic simulation
   - rME_tb.v          # Message Expansion unit test
@@ -49,24 +49,24 @@ The repository is organized as follows:
   - RX_tb.v           # UART Receiver unit test
   - TX_tb.v           # UART Transmitter unit test
 
-📂 Embedded_Code      # C Code for ZCU102 Processor
+###📂 Embedded_Code      # C Code for ZCU102 Processor
   - main.c            # UART communication and Input loading
   - MEvMC.c           # Software-side hash verification
   - SHA256.c          # Activation control for MEvMC
 
-# 5. Getting Started
+## 5. Getting Started
 
-# Prerequisites
+### Prerequisites
   -  Xilinx Vivado Design Suite (2020.2 or later recommended)
   -  ZCU102 FPGA Evaluation Board
   -  Terminal Emulator (TeraTerm, PuTTY, etc.)
 
-# Simulation
+### Simulation
   1. Open the project in Vivado.
   2. Set sha256_top_tb.v as the top simulation source.
   3. Run Behavioral Simulation to verify the waveform outputs against the expected SHA-256 hash.
 
-# Hardware Implementation
+### Hardware Implementation
   1. Run Synthesis, Implementation, and Generate Bitstream in Vivado.
   2. Export Hardware (including bitstream) to Vitis/SDK.
   3. Load the main.c embedded code onto the ZCU102 ARM processor.
@@ -74,15 +74,15 @@ The repository is organized as follows:
   5. Open your terminal emulator (Baud Rate: 115200).
   6. Input a string to see the calculated SHA-256 hash returned.
 
-# 6. References
+## 6. References
   -  Concept: SHA-256 Step-By-Step Explanation (https://www.youtube.com/watch?v=orIgy2MjqrA&t=103s)
   -  Research: High-Performance Multimem SHA-256 Accelerator (IEEE) (https://ieeexplore.ieee.org/abstract/document/9367201)
 
-# 7. Acknowledgments
+## 7. Acknowledgments
   -  UART Receiver/Transmitter modules provided by course instructor.
   -  GEMINI thinking 3 pro helps me how to decorate file README.md
 
-# 8. Screenshots
+## 8. Screenshots
   -  This is the schematic of my project SHA256.
 <img width="1725" height="290" alt="Screenshot from 2025-12-05 18-11-22" src="https://github.com/user-attachments/assets/0e1b83a0-42b7-4430-b2c5-84a47247800f" />
 
