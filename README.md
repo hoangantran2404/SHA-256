@@ -25,34 +25,38 @@ The data processing flow moves from the UART receiver through the SHA-256 core a
 The repository is organized as follows:
 - README.md
 
-###📂 RTL
-  -  sha256_top.v      # Top-level module integrating UART and Core
-  -  sha256_core.v     # Core logic (Message Expansion + Compression)
-  -  MP.v              # Message Packer (RX -> 512-bit chunks)
-  -  rME.v             # Message Expansion (Generates W[16..63])
-  -  MC.v              # Message Compression (64-loop hash generation)
-  -  maj.v             # 'Majority' Logic Control Unit
-  -  CHS.v             # 'Choose' Logic Control Unit
-  -  EP0.v             # Sigma0 Logic
-  -  EP1.v             # Sigma1 Logic
-  -  SIG0.v            # Lower-sigma0 Logic
-  -  SIG1.v            # Lower-sigma1 Logic
-  -  receiver.v        # UART Receiver (External IP)
-  -  transmitter.v     # UART Transmitter (External IP)
+### 📂 RTL
 
-###📂 Testbench          # Simulation Files
-  - sha256_top_tb.v   # Full system simulation (UART -> Core -> UART)
-  - sha256_core_tb.v  # Core logic simulation
-  - rME_tb.v          # Message Expansion unit test
-  - MC_tb.v           # Message Compression unit test
-  - MP_tb.v           # Message Packer unit test
-  - RX_tb.v           # UART Receiver unit test
-  - TX_tb.v           # UART Transmitter unit test
+| Module Name | Type | Function / Description |
+| :--- | :---: | :--- |
+| `sha256_top.v` | **Top Level** | Main entry point; connects UART to SHA Core. |
+| `sha256_core.v` | **Core** | Wrapper containing ME and MC units. |
+| `MP.v` | **Datapath** | **Message Packer:** Converts 8-bit RX to 512-bit blocks. |
+| `rME.v` | **Compute** | **Message Expansion:** Generates schedule words $W_{16}$..$W_{63}$. |
+| `MC.v` | **Compute** | **Message Compression:** Performs 64-round hash loop. |
+| `maj.v` / `CHS.v` | **Logic** | Helper math functions for SHA-256 calculation. |
+| `receiver.v` | **IO** | UART Receiver (RX). |
+| `transmitter.v` | **IO** | UART Transmitter (TX). |
 
-###📂 Embedded_Code      # C Code for ZCU102 Processor
-  - main.c            # UART communication and Input loading
-  - MEvMC.c           # Software-side hash verification
-  - SHA256.c          # Activation control for MEvMC
+### 📂 Testbench         
+
+| Testbench File | Description |
+| :--- | :--- |
+| `sha256_top_tb.v` | Full system simulation (UART -> Core -> UART) |
+| `sha256_core_tb.v` | Core logic simulation |
+| `rME_tb.v` | Message Expansion unit test |
+| `MC_tb.v` | Message Compression unit test |
+| `MP_tb.v` | Message Packer unit test |
+| `RX_tb.v` | UART Receiver unit test |
+| `TX_tb.v` | UART Transmitter unit test |
+
+### 📂 Embedded_Code     
+
+| File Name | Role | Function / Description |
+| :--- | :---: | :--- |
+| `main.c` | **Entry Point** | **UART Handler:** Communicates with the board, loads input data, and prints the final hash output. |
+| `MEvMC.c` | **Verification** | **Software Model:** Pure C implementation of SHA-256 used to verify hardware accuracy. |
+| `SHA256.c` | **Driver** | **Control Logic:** Manages the activation and execution flow of the `MEvMC` verification. |
 
 ## 5. Getting Started
 
