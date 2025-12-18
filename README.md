@@ -94,8 +94,8 @@ The repository is organized as follows:
   6. Input a string to see the calculated SHA-256 hash returned.
 
 ## 7. References
-  -  Concept: SHA-256 Step-By-Step Explanation (https://www.youtube.com/watch?v=orIgy2MjqrA&t=103s)
-  -  Research: High-Performance Multimem SHA-256 Accelerator (IEEE) (https://ieeexplore.ieee.org/abstract/document/9367201)
+  -  Concept: [SHA-256 Step-By-Step Explanation(Youtube)](https://www.youtube.com/watch?v=orIgy2MjqrA&t=103s)
+  -  Research: [High-Performance Multimem SHA-256 Accelerator (IEEE)](https://ieeexplore.ieee.org/abstract/document/9367201)
 
 ## 8. Acknowledgments
   -  UART Receiver/Transmitter modules provided by course instructor.
