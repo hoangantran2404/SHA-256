@@ -1,4 +1,4 @@
-# SHA-256 Verilog Implementation on ZCU102
+# SHA-256 Implementation on ZCU102
 
 ## 1. Overview
 This project implements the SHA-256 cryptographic hash algorithm entirely in Verilog using the Xilinx Vivado Design Suite. It is designed for FPGA synthesis, specifically targeting the ZCU102 board.
