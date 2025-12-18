@@ -16,12 +16,27 @@ The project demonstrates advanced digital design skills, including:
   - Flexible: Parameterizable data width (default 32-bit) for easy integration.
   - Verified: Includes a comprehensive Testbench for simulation and C code for hardware verification.
   - Hardware Ready: Synthesizable and tested on the Xilinx ZCU102 FPGA board.
-  
-## 3. Architecture & Dataflow
+
+## 3. Industrial Applications (FPGA, SoC, IC) 
+SHA-256 is a cornerstone of modern digital security. Implementing it in hardware (Verilog) offers significant advantages over software, making it critical in the following domains:
+
+* **FPGA (Field Programmable Gate Arrays):**
+    * **Blockchain Technology:** FPGAs utilize massive parallelism to perform high-speed hashing required for cryptocurrency mining and blockchain validation.
+    * **Network Acceleration:** Used in SSL/TLS offloading to verify data packet integrity in real-time without burdening the network infrastructure.
+
+* **SoC (System on Chip):**
+    * **Secure Boot (Root of Trust):** In modern SoCs (like the Zynq UltraScale+ on the ZCU102), SHA-256 verifies the integrity of the bootloader and OS kernel before the system starts. If the hash doesn't match, the system prevents booting to block malware.
+    * **Hardware Acceleration:** It acts as a dedicated co-processor, allowing the main CPU (e.g., ARM Cortex) to focus on application logic while the hardware handles cryptography efficiently.
+
+* **IC (Integrated Circuits) & Smart Cards:**
+    * **Authentication:** Essential in EMV banking cards and SIM cards for generating digital signatures during transactions.
+    * **IoT Security:** Low-power hardware implementations ensure data integrity in resource-constrained IoT sensors where software hashing would consume too much battery.
+
+## 4. Architecture & Dataflow
 The data processing flow moves from the UART receiver through the SHA-256 core and back to the transmitter.
 <img width="1133" height="1041" alt="Screenshot from 2025-11-12 07-17-00" src="https://github.com/user-attachments/assets/ddd3c297-8db7-406d-80e2-dbfb6a9751fc" />
 
-## 4. Project Structure
+## 5. Project Structure
 The repository is organized as follows:
 - README.md
 
@@ -38,7 +53,7 @@ The repository is organized as follows:
 | `receiver.v` | **IO** | UART Receiver (RX). |
 | `transmitter.v` | **IO** | UART Transmitter (TX). |
 
-### 📂 Testbench         
+### 📂 Testbench          
 
 | Testbench File | Description |
 | :--- | :--- |
@@ -50,7 +65,7 @@ The repository is organized as follows:
 | `RX_tb.v` | UART Receiver unit test |
 | `TX_tb.v` | UART Transmitter unit test |
 
-### 📂 Embedded_Code     
+### 📂 Embedded_Code      
 
 | File Name | Role | Function / Description |
 | :--- | :---: | :--- |
@@ -58,7 +73,7 @@ The repository is organized as follows:
 | `MEvMC.c` | **Verification** | **Software Model:** Pure C implementation of SHA-256 used to verify hardware accuracy. |
 | `SHA256.c` | **Driver** | **Control Logic:** Manages the activation and execution flow of the `MEvMC` verification. |
 
-## 5. Getting Started
+## 6. Getting Started
 
 ### Prerequisites
   -  Xilinx Vivado Design Suite (2020.2 or later recommended)
@@ -78,15 +93,15 @@ The repository is organized as follows:
   5. Open your terminal emulator (Baud Rate: 115200).
   6. Input a string to see the calculated SHA-256 hash returned.
 
-## 6. References
+## 7. References
   -  Concept: SHA-256 Step-By-Step Explanation (https://www.youtube.com/watch?v=orIgy2MjqrA&t=103s)
   -  Research: High-Performance Multimem SHA-256 Accelerator (IEEE) (https://ieeexplore.ieee.org/abstract/document/9367201)
 
-## 7. Acknowledgments
+## 8. Acknowledgments
   -  UART Receiver/Transmitter modules provided by course instructor.
   -  GEMINI thinking 3 pro helps me how to decorate file README.md
 
-## 8. Screenshots
+## 9. Screenshots
   -  This is the schematic of my project SHA256.
 <img width="1725" height="290" alt="Screenshot from 2025-12-05 18-11-22" src="https://github.com/user-attachments/assets/0e1b83a0-42b7-4430-b2c5-84a47247800f" />
 
@@ -102,7 +117,6 @@ The repository is organized as follows:
 
   -  The file in this picture is SHA256.c, which I use the hash output on Software to verify the result on Hardware
 <img width="2047" height="1486" alt="Screenshot from 2025-12-09 21-44-55" src="https://github.com/user-attachments/assets/23af4f8e-6765-4307-85d9-21a2fd1803da" />
-
 
 
 
