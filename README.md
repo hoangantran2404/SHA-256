@@ -97,7 +97,8 @@ The repository is organized as follows:
 <img width="2171" height="1372" alt="Screenshot from 2025-11-28 01-38-52" src="https://github.com/user-attachments/assets/905a9184-a9f1-48c5-b73b-7a599ddc0434" />
 
   -  This picture shows the hash output of string" Secure Hash Algorithm 256" running on ZCU102 FPGA board.
-<img width="1144" height="528" alt="Screenshot from 2025-12-10 15-03-21" src="https://github.com/user-attachments/assets/028b6177-73ba-47f0-a85b-c90bbcde0a3f" />
+<img width="1922" height="934" alt="Screenshot from 2025-12-18 01-50-02" src="https://github.com/user-attachments/assets/f9ae7a91-a356-4ed7-9623-42e221bee434" />
+
 
   -  The file in this picture is SHA256.c, which I use the hash output on Software to verify the result on Hardware
 <img width="2047" height="1486" alt="Screenshot from 2025-12-09 21-44-55" src="https://github.com/user-attachments/assets/23af4f8e-6765-4307-85d9-21a2fd1803da" />
