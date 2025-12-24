@@ -85,8 +85,7 @@ module ME #(
             end
         end else begin
             if (FSM_core_in == 3'b010)begin
-                if(core_count_in > 0)
-                    address_r[core_count_in - 1] <= data_in;
+                    address_r[core_count_in] <= data_in;
             end else if (FSM_core_in == 3'b011) begin
                 ME_dv_out               <= 1;
                 else if (core_count_in >= 16) begin
