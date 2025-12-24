@@ -80,7 +80,7 @@ module SHA256_core#(
 //==================================================//
 //                  Instantiate module              //
 //==================================================//
-    rME # (
+    ME # (
         .DATA_WIDTH(DATA_WIDTH)
     ) Message_Expansion(
         .clk                ( clk                   ),
