@@ -23,11 +23,9 @@ module SHA256_core#(
 )(
     input wire                      clk, rst_n,
     input wire                      MP_dv_in,
-    input wire                      Tx_Active_in,
-    input wire                      Tx_Done_in,
     input wire [DATA_WIDTH -1 :0]   message_in,
 
-    output wire [7 :0]              hash_out,
+    output wire [DATA_WIDTH-1 :0]   hash_out,
     output wire                     core_dv_flag
 );
 //==================================================//
@@ -40,8 +38,6 @@ module SHA256_core#(
     wire                            send_flag_w;
     wire [DATA_WIDTH -1:0]          ME_byte_out_w;
     wire [DATA_WIDTH -1:0]          MC_byte_out_w;
-
-    reg                             Tx_Done_prev_r;
 //==================================================//
 //              State Encoding                      //
 //==================================================//
@@ -59,7 +55,6 @@ module SHA256_core#(
 //==================================================//
 //                  Registers                       //
 //==================================================//
-    reg [DATA_WIDTH -1 :0]          ME_byte_in_r ;
     reg [DATA_WIDTH -1 :0]          address_in_r[0:15] ;
 
     reg [255 :0]                    address_out_r ;
@@ -68,43 +63,40 @@ module SHA256_core#(
 //==================================================//
 //                  Combinational Logic             //
 //==================================================//
-    assign core_dv_flag    = (current_state_r == s_SEND_TX && Tx_Active_in == 1'b0 );
+    assign core_dv_flag    = (current_state_r == s_SEND_TX);
     assign load_flag_w     = (current_state_r == s_LOAD    && core_count_r == 7'd16);
-    assign load_ME_flag_w  = (current_state_r == s_LOAD_ME && core_count_r == 7'd16);// It is 7'd16 because when core_count_r =7'd15, 
-                                                                                     //W[15] is on the wire and it does not have enough time to load to rME so we will wait one dead cylce.
+    assign load_ME_flag_w  = (current_state_r == s_LOAD_ME && core_count_r == 7'd16);
     assign EXE_flag_w      = (current_state_r == s_EXE_BIT && core_count_r == 7'd63);
     assign RX_flag_w       = (current_state_r == s_RX_MC   && core_count_r == 7'd8);
-    assign send_flag_w     = (current_state_r == s_SEND_TX && core_count_r == 7'd32);
+    assign send_flag_w     = (current_state_r == s_SEND_TX && core_count_r == 7'd7);
 
-    assign hash_out        = (current_state_r == s_SEND_TX)? address_out_r[255 - core_count_r*8 -:8]: 8'd0;
+    assign hash_out        = (current_state_r == s_SEND_TX)? address_out_r[255 - core_count_r*32 -:32]: 32'd0;
 //==================================================//
 //                  Instantiate module              //
 //==================================================//
     ME # (
         .DATA_WIDTH(DATA_WIDTH)
     ) Message_Expansion(
-        .clk                ( clk                   ),
-        .rst_n              ( rst_n                 ),
-        // .start_in           ( ME_dv_flag_w           ),
-        .core_count_in      ( core_count_r          ),
-        .FSM_core_in        ( current_state_r       ),
-        .data_in            ( ME_byte_in_r          ),
+        .clk                ( clk                           ),
+        .rst_n              ( rst_n                         ),
+        .core_count_in      ( core_count_r                  ),
+        .FSM_core_in        ( current_state_r               ),
+        .data_in            ( address_in_r[core_count_r]    ),
 
-        .ME_dv_out          ( ME_dv_out_w           ),
-        .data_out           ( ME_byte_out_w         )
+        .ME_dv_out          ( ME_dv_out_w                   ),
+        .data_out           ( ME_byte_out_w                 )
     );
     MC #(
         .DATA_WIDTH(DATA_WIDTH)
     ) Message_Compression(
-        .clk                ( clk                   ),
-        .rst_n              ( rst_n                 ),
-        // .start_in           ( MC_dv_flag_w          ),
-        .data_in            ( ME_byte_out_w         ),
-        .FSM_core_in        ( current_state_r       ),
-        .core_count_in      ( core_count_r          ),
+        .clk                ( clk                           ),
+        .rst_n              ( rst_n                         ),
+        .data_in            ( ME_byte_out_w                 ),
+        .FSM_core_in        ( current_state_r               ),
+        .core_count_in      ( core_count_r                  ),
 
-        .data_out           ( MC_byte_out_w         ),
-        .MC_dv_out          ( MC_dv_out_w           )
+        .data_out           ( MC_byte_out_w                 ),
+        .MC_dv_out          ( MC_dv_out_w                   )
     );
 
 //==================================================//
@@ -172,13 +164,9 @@ always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         core_count_r                    <= 0;
         address_out_r                   <= 0;
-        ME_byte_in_r                    <= 0;
         for(i=0 ; i<16 ;i= i + 1) 
             address_in_r[i] <= 0;
     end else begin
-
-        Tx_Done_prev_r   <=  Tx_Done_in;
-
         if(current_state_r != next_state_r) begin
             core_count_r                <= 0;
 
@@ -202,7 +190,6 @@ always @(posedge clk or negedge rst_n) begin
                 end
             end
             s_LOAD_ME: begin
-                ME_byte_in_r            <= address_in_r[core_count_r];
                 core_count_r            <= core_count_r + 1;
             end
             s_EXE_BIT: begin
@@ -215,11 +202,10 @@ always @(posedge clk or negedge rst_n) begin
                 end
             end
             s_SEND_TX: begin
-                if(Tx_Done_in == 1'b1 && Tx_Done_prev_r == 1'b0) begin   
                     core_count_r            <= core_count_r + 1;
-                end
             end
             s_CLEANUP: begin
+                    core_count_r            <= 0;
             end
         endcase
         end
