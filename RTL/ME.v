@@ -18,17 +18,14 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
-
 module ME #(
     parameter DATA_WIDTH =32
 ) 
 (
     input wire                   clk,
     input wire                   rst_n,
-    input wire                   start_in,
     input wire [2:0]             FSM_core_in,
-    input wire [6:0]             core_count_in, // Count how many word pass from Core to ME
+    input wire [6:0]             core_count_in,
     input wire [DATA_WIDTH-1:0]  data_in,
     
     output wire [DATA_WIDTH-1:0]  data_out,
@@ -88,7 +85,7 @@ module ME #(
                     address_r[core_count_in] <= data_in;
             end else if (FSM_core_in == 3'b011) begin
                 ME_dv_out               <= 1;
-                else if (core_count_in >= 16) begin
+                if (core_count_in >= 16) begin
                     address_r[core_count_in] <= data_out_r;
                 end
             end else begin
