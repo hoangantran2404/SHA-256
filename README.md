@@ -46,8 +46,9 @@ The repository is organized as follows:
 | :--- | :---: | :--- |
 | `sha256_top.v` | **Top Level** | Main entry point; connects UART to SHA Core. |
 | `sha256_core.v` | **Core** | Wrapper containing ME and MC units. |
-| `MP.v` | **Datapath** | **Message Packer:** Converts 8-bit RX to 512-bit blocks. |
-| `rME.v` | **Compute** | **Message Expansion:** Generates schedule words $W_{16}$..$W_{63}$. |
+| `MP_in.v` | **Datapath** | **Message Packer:** Compile data from RX then send to core |
+| `MP_out.v` | **Datapath** | **Message Packer:** Compile data from core then send to TX|
+| `ME.v` | **Compute** | **Message Expansion:** Generates schedule words $W_{16}$..$W_{63}$. |
 | `MC.v` | **Compute** | **Message Compression:** Performs 64-round hash loop. |
 | `maj.v` / `CHS.v` | **Logic** | Helper math functions for SHA-256 calculation. |
 | `receiver.v` | **IO** | UART Receiver (RX). |
@@ -57,11 +58,12 @@ The repository is organized as follows:
 
 | Testbench File | Description |
 | :--- | :--- |
-| `sha256_top_tb.v` | Full system simulation (UART -> Core -> UART) |
-| `sha256_core_tb.v` | Core logic simulation |
-| `rME_tb.v` | Message Expansion unit test |
-| `MC_tb.v` | Message Compression unit test |
-| `MP_tb.v` | Message Packer unit test |
+| `sha256_top_tb.sv` | Full system simulation (UART -> Core -> UART) |
+| `sha256_core_tb.sv` | Core logic simulation |
+| `ME_tb.sv` | Message Expansion unit test |
+| `MC_tb.sv` | Message Compression unit test |
+| `MP_in_tb.sv` | Message Packer unit test (in)|
+| `MP_out_tb.sv` | Message Packer unit test (out)|
 | `RX_tb.v` | UART Receiver unit test |
 | `TX_tb.v` | UART Transmitter unit test |
 
@@ -103,7 +105,7 @@ The repository is organized as follows:
 
 ## 9. Screenshots
   -  This is the schematic of my project SHA256.
-<img width="1725" height="290" alt="Screenshot from 2025-12-05 18-11-22" src="https://github.com/user-attachments/assets/0e1b83a0-42b7-4430-b2c5-84a47247800f" />
+<img width="1754" height="277" alt="Screenshot from 2025-12-25 10-29-58" src="https://github.com/user-attachments/assets/40cd0df9-d9f2-406e-a949-0e6ea2e5e8f1" />
 
   -  This is the picture when I run simulation of file sha256_top_tb.v. I usually use waveform to check timing delay and errors to correct dataflow.
 <img width="2219" height="1408" alt="Screenshot from 2025-12-09 21-44-42" src="https://github.com/user-attachments/assets/1233b0d6-477a-46e6-be04-ca3bdb39c576" />
