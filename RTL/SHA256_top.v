@@ -19,67 +19,76 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 module SHA256_top(
-    input wire          clk,   // ZCU102 clock input
+    input wire          clk,   
     input wire          rst_n,
     input wire          data_in,
 
     output wire         data_out
 );
     //==================================================//
-    //                   Registers                      //
+    //                      WIRE                        //
     //==================================================//
-    wire [31:0] MP_data_out     ;
-    wire        MP_dv_flag      ;
-    wire        UART_done_flag  ;
-    wire [7:0]  UART_rx_out     ;
-    wire [7:0]  SHA_core_out    ;
-    wire        SHA_dv_flag     ;
-    wire        Tx_Done_w       ;
-    wire        Tx_Active_w     ;
+    wire        RX_dv_out_w         ;
+    wire        MP_in_dv_out_w      ;
+    wire        core_dv_out_w       ;
+    wire        TX_active_w         ;
+    wire        TX_done_w           ;
+    wire        MP_out_dv_out_w     ;
+    wire [7:0]  RX_data_out_w       ;
+    wire [7:0]  MP_out_data_out_w   ;
+    wire [31:0] MP_in_data_out_w    ;
+    wire [31:0] core_data_out_w     ;
+    
     //==================================================//
     //                  Instantiate                     //
     //==================================================//
-receiver UART_receiver(
-                .CLK            (clk            ),
-                .Rx_Serial_in   (data_in        ),
-                
-                .Rx_DV_out      (UART_done_flag ),
-                .Rx_Byte_out    (UART_rx_out    )
-);
+    receiver UART_receiver(
+                    .CLK            (clk                ),
+                    .Rx_Serial_in   (data_in            ),
+                    
+                    .Rx_DV_out      (RX_dv_out_w        ),
+                    .Rx_Byte_out    (RX_data_out_w      )
+    );
+        
+    MP_in module_MP_in(
+                    .clk            (clk                ),
+                    .rst_n          (rst_n              ),
+                    .RX_DV_in       (RX_dv_out_w        ),       
+                    .uart_byte_in   (RX_data_out_w      ),        
+
+                    .MP_data_out    (MP_in_data_out_w   ),
+                    .MP_dv_out      (MP_in_dv_out_w     )
+    );
+
+    SHA256_core module_SHA256_core(
+                    .clk            (clk                ), 
+                    .rst_n          (rst_n              ), 
+                    .MP_dv_in       (MP_in_dv_out_w     ),
+                    .message_in     (MP_in_data_out_w   ),
+
+                    .hash_out       (core_data_out_w    ),
+                    .core_dv_flag   (core_dv_out_w      )
+    );
     
+    MP_out module_MP_out(
+                    .clk            (clk                ),
+                    .rst_n          (rst_n              ),
+                    .core_byte_in   (core_data_out_w    ),
+                    .TX_active_in   (TX_active_w        ),
+                    .TX_done_in     (TX_done_w          ),
+                    .RX_DV_in       (core_dv_out_w      ),
 
-Message_Packer module_message_packer(
-                .clk            (clk           ),
-                .rst_n          (rst_n         ),
-                .RX_DV_in       (UART_done_flag),       
-                .uart_byte_in   (UART_rx_out   ),        
+                    .MP_data_out    (MP_out_data_out_w  ),
+                    .MP_dv_out      (MP_out_dv_out_w    )
+    );                              
 
-                .data_out       (MP_data_out   ),
-                .MP_dv_out      (MP_dv_flag    )
+    transmitter UART_transmitter(
+                    .CLK            (clk                ),
+                    .Tx_DV_in       (MP_out_dv_out_w    ),
+                    .Tx_Byte_in     (MP_out_data_out_w  ),
 
-);
-
-
-SHA256_core module_SHA256_core(
-                .clk            (clk          ), 
-                .rst_n          (rst_n        ), 
-                .Tx_Active_in   (Tx_Active_w  ),
-                .Tx_Done_in     (Tx_Done_w    ),
-                .MP_dv_in       (MP_dv_flag   ),
-                .message_in     (MP_data_out  ),
-
-                .hash_out       (SHA_core_out ),
-                .core_dv_flag   (SHA_dv_flag  )
-);
-
-transmitter UART_transmitter(
-                .CLK            (clk         ),
-                .Tx_DV_in       (SHA_dv_flag ),
-                .Tx_Byte_in     (SHA_core_out),
-
-                .Tx_Serial_out  (data_out    ),
-                .Tx_Done_out    (Tx_Done_w   ),
-                .Tx_Active_out  (Tx_Active_w )
-);
-
+                    .Tx_Serial_out  (data_out           ),
+                    .Tx_Done_out    (TX_done_w          ),
+                    .Tx_Active_out  (TX_active_w        )
+    );
 endmodule
