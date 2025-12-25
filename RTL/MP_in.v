@@ -18,8 +18,7 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
-module Message_Packer #(
+module MP_in #(
     parameter DATA_WIDTH    = 32
 )(
     input  wire                             clk,    
@@ -27,7 +26,7 @@ module Message_Packer #(
     input  wire [7:0]                       uart_byte_in,     
     input  wire                             RX_DV_in,
 
-    output wire [DATA_WIDTH-1 :0]           data_out,
+    output wire [DATA_WIDTH-1 :0]           MP_data_out,
     output wire                             MP_dv_out     
 );
 
@@ -57,10 +56,10 @@ module Message_Packer #(
 
     assign MP_dv_out       = (current_state_r == s_SEND);
 
-    assign RX_done_flag_w   = (current_state_r == s_RX_DATA_BITS) && (MP_count_r == 7'd64) ; 
+    assign RX_done_flag_w   = (current_state_r == s_RX_DATA_BITS && MP_count_r == 7'd64) ; 
     assign SEND_done_flag_w = (current_state_r == s_SEND && MP_count_r == 7'd15); 
 
-    assign data_out = (current_state_r == s_SEND ) ?  address_r[511-32*MP_count_r -:32] : 32'd0;
+    assign MP_data_out      = (current_state_r == s_SEND )?  address_r[511-32*MP_count_r -:32] : 32'd0;
 
     //==================================================//
     //                  Next State Logic                //
@@ -145,7 +144,6 @@ module Message_Packer #(
             endcase
         end
     end
-
 endmodule
 
 
